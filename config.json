@@ -1,0 +1,32 @@
+{
+    "ComputerName": "core-lab",
+    "AllowRemoteDesktop": true,
+    "FirewallPorts": [ 
+      3389, 
+      5985, 
+      5986
+    ],
+    "CertificateAuthority": {
+      "CommonName": "core-lab-RootCA",
+      "ValidityYears": 5
+    },
+    "HyperV": {
+      "EnableManagementTools": true
+    },
+    "WAC": {
+      "InstallPort": 443,
+      "FriendlyName": "WAC SSL Certificate"
+    },
+    "GitUsername": "wizzense",
+    "GitEmail": "wizzense@wizzense.com",
+    
+    "GitHubCLIInstallerUrl": "https://github.com/cli/cli/releases/download/v2.67.0/gh_2.67.0_windows_amd64.msi",
+    
+    "RepoUrl": "https://github.com/wizzense/simple-lab-config.git",
+    "LocalPath": "",
+    
+    "RunnerScriptName": "runner.ps1"
+
+    
+  }
+  
