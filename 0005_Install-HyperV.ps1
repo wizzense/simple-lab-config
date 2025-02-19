@@ -3,10 +3,20 @@ Param(
     [PSCustomObject]$Config
 )
 
-Write-Host "Installing Hyper-V..."
+Write-Host "Checking if Hyper-V is already installed..."
+
+# Get the installation state of Hyper-V
+$feature = Get-WindowsFeature -Name Hyper-V
+
+if ($feature -and $feature.Installed) {
+    Write-Host "Hyper-V is already installed. Skipping installation."
+    exit 0
+}
+
+Write-Host "Hyper-V is not installed. Proceeding with installation..."
 
 $enableMgtTools = $Config.HyperV.EnableManagementTools -eq $true
-$restart = $false  # Set to $true if you want an automatic restart
+$restart = $false  # Change to $true if you want an automatic restart
 
 if ($restart) {
     Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -Restart -ErrorAction Stop
