@@ -36,9 +36,44 @@ try {
 }
 
 # ------------------------------------------------
-# (2) Check GitHub CLI
+# (2) Check & Install Git for Windows
 # ------------------------------------------------
-Write-Host "==== Check if GitHub CLI is installed ===="
+Write-Host "==== Checking if Git is installed ===="
+$gitExe = Get-Command git -ErrorAction SilentlyContinue
+if (-not $gitExe) {
+    Write-Host "Git is not installed. Downloading and installing Git for Windows..."
+
+    $gitInstallerUrl = "https://github.com/git-for-windows/git/releases/latest/download/Git-2.39.2-64-bit.exe"
+    $gitInstallerPath = Join-Path -Path $env:TEMP -ChildPath "GitInstaller.exe"
+
+    Invoke-WebRequest -Uri $gitInstallerUrl -OutFile $gitInstallerPath -UseBasicParsing
+    Write-Host "Installing Git silently..."
+    Start-Process -FilePath $gitInstallerPath -ArgumentList "/SILENT" -Wait -NoNewWindow
+
+    Remove-Item -Path $gitInstallerPath -ErrorAction SilentlyContinue
+    Write-Host "Git installation completed."
+
+    # Add Git to PATH
+    $gitPath = "C:\Program Files\Git\cmd"
+    if (Test-Path $gitPath) {
+        $env:Path = "$gitPath;$env:Path"
+        [System.Environment]::SetEnvironmentVariable("Path", "$gitPath;$([System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine))", [System.EnvironmentVariableTarget]::Machine)
+    }
+}
+
+# Verify Git installation
+$gitVersion = git --version 2>$null
+if ($gitVersion) {
+    Write-Host "Git is installed: $gitVersion"
+} else {
+    Write-Error "ERROR: Git installation failed. Exiting."
+    exit 1
+}
+
+# ------------------------------------------------
+# (3) Check GitHub CLI
+# ------------------------------------------------
+Write-Host "==== Checking if GitHub CLI is installed ===="
 $ghExePath = "C:\Program Files\GitHub CLI\gh.exe"
 if (Test-Path $ghExePath) {
     Write-Host "GitHub CLI found at $ghExePath. Adding to PATH."
@@ -67,11 +102,10 @@ if ($authStatus -match "not logged into github.com") {
     Write-Host "GitHub CLI is authenticated."
 }
 
-
 # ------------------------------------------------
-# (3) Clone or Update Repository
+# (4) Clone or Update Repository
 # ------------------------------------------------
-Write-Host "==== Clone or update the target repository ===="
+Write-Host "==== Cloning or updating the target repository ===="
 $repoUrl = $config.RepoUrl
 if (-not $repoUrl) {
     Write-Error "ERROR: config.json does not specify 'RepoUrl'."
@@ -92,9 +126,14 @@ $repoName = ($repoUrl.Split('/')[-1]).Replace(".git", "")
 $repoPath = Join-Path $localPath $repoName
 
 if (!(Test-Path $repoPath)) {
-    #update
     Write-Host "Cloning repository from $repoUrl to $repoPath..."
-    gh repo clone $repoUrl $repoPath
+    gh repo clone $repoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
+
+    # Verify that cloning succeeded
+    if (!(Test-Path $repoPath)) {
+        Write-Error "ERROR: Repository cloning failed. Check log: $env:TEMP\gh_clone_log.txt"
+        exit 1
+    }
 } else {
     Write-Host "Repository already exists. Pulling latest changes..."
     Push-Location $repoPath
@@ -102,11 +141,10 @@ if (!(Test-Path $repoPath)) {
     Pop-Location
 }
 
-
 # ------------------------------------------------
-# (4) Invoke the Runner Script
+# (5) Invoke the Runner Script
 # ------------------------------------------------
-Write-Host "==== Invoke the runner script ===="
+Write-Host "==== Invoking the runner script ===="
 $runnerScriptName = $config.RunnerScriptName
 if (-not $runnerScriptName) {
     Write-Warning "No runner script specified in config. Exiting gracefully."
@@ -122,5 +160,5 @@ if (!(Test-Path $runnerScriptName)) {
 Write-Host "Running $runnerScriptName from $repoPath ..."
 . .\$runnerScriptName
 
-Write-Host "\n=== Kicker script finished successfully! ==="
+Write-Host "`n=== Kicker script finished successfully! ==="
 exit 0
