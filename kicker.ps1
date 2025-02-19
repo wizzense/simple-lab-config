@@ -66,7 +66,7 @@ if (Test-Path $gitPath) {
 }
 
 # **Force refresh of environment variables**
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+#$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
 
 # **Final Git check**
 $gitVersion = git --version 2>$null
