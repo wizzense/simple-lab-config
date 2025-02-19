@@ -5,16 +5,13 @@ Param(
 
 Write-Host "Installing Hyper-V..."
 
-# In your config, you might have "EnableManagementTools": true/false
 $enableMgtTools = $Config.HyperV.EnableManagementTools -eq $true
+$restart = $false  # Set to $true if you want an automatic restart
 
-$featureName = "Hyper-V"
-$additionalArgs = if ($enableMgtTools) { "-IncludeManagementTools" } else { "" }
-
-$cmd = "Install-WindowsFeature -Name $featureName $additionalArgs -Restart:$false -ErrorAction Stop"
-Write-Host $cmd
-Invoke-Expression $cmd
+if ($restart) {
+    Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -Restart -ErrorAction Stop
+} else {
+    Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -ErrorAction Stop
+}
 
 Write-Host "Hyper-V installation complete. A restart is typically required to finalize installation."
-# Optionally:
-# Restart-Computer -Force
