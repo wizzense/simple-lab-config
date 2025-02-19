@@ -78,6 +78,7 @@ $repoName = ($repoUrl.Split('/')[-1]).Replace(".git", "")
 $repoPath = Join-Path $localPath $repoName
 
 if (!(Test-Path $repoPath)) {
+    #update
     Write-Host "Cloning repository from $repoUrl to $repoPath..."
     gh repo clone $repoUrl $repoPath
 } else {
