@@ -79,13 +79,14 @@ $repoPath = Join-Path $localPath $repoName
 
 if (!(Test-Path $repoPath)) {
     Write-Host "Cloning repository from $repoUrl to $repoPath..."
-    gh clone $repoUrl $repoPath
+    gh repo clone $repoUrl $repoPath
 } else {
     Write-Host "Repository already exists. Pulling latest changes..."
     Push-Location $repoPath
-    gh pull
+    git pull
     Pop-Location
 }
+
 
 # ------------------------------------------------
 # (4) Invoke the Runner Script
