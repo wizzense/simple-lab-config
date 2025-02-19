@@ -60,16 +60,26 @@ if ($wacInstalled) {
 
 Write-Host "Installing Windows Admin Center..."
 
-# Because Windows Admin Center is updated frequently, we point to https://aka.ms/wacdownload
+# Check if WAC is configured in the provided config
 $WacConfig = $Config.WAC
 if ($null -eq $WacConfig) {
     Write-Host "No WAC configuration found. Skipping installation."
     return
 }
 
+# Validate that required properties exist
+if (-not $WacConfig.PSObject.Properties["InstallPort"] -or -not $WacConfig.PSObject.Properties["FriendlyName"]) {
+    Write-Host "Error: Missing required properties (InstallPort or FriendlyName) in WAC config. Exiting."
+    return
+}
+
 $installPort  = $WacConfig.InstallPort
 $certFriendly = $WacConfig.FriendlyName
-$certSubject  = $WacConfig.CertificateSubject -replace '\*', 'wildcard'
+$certSubject  = if ($WacConfig.PSObject.Properties["CertificateSubject"]) { 
+    $WacConfig.CertificateSubject 
+} else { 
+    "WAC-Cert-$env:COMPUTERNAME"  # Default to a reasonable fallback
+}
 
 # 1. Generate or retrieve a valid certificate from the CA for WAC
 
