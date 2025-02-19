@@ -106,33 +106,22 @@ if ($authStatus -match "not logged into github.com") {
 # (4) Clone or Update Repository
 # ------------------------------------------------
 Write-Host "==== Cloning or updating the target repository ===="
-$repoUrl = $config.RepoUrl
-if (-not $repoUrl) {
-    Write-Error "ERROR: config.json does not specify 'RepoUrl'."
-    exit 1
-}
-
-$localPath = $config.LocalPath
-if (-not $localPath) {
-    $localPath = "$env:USERPROFILE\Documents\ServerSetup"
-}
-
-Write-Host "Ensuring local path '$localPath' exists..."
-if (!(Test-Path $localPath)) {
-    New-Item -ItemType Directory -Path $localPath | Out-Null
-}
-
-$repoName = ($repoUrl.Split('/')[-1]).Replace(".git", "")
-$repoPath = Join-Path $localPath $repoName
-
 if (!(Test-Path $repoPath)) {
-    Write-Host "Cloning repository from $repoUrl to $repoPath..."
-    gh repo clone $repoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
-
-    # Verify that cloning succeeded
+    Write-Host "Cloning repository from $repoUrl to $repoPath using GitHub CLI..."
+    
+    # Try using GitHub CLI first
+    $cloneOutput = gh repo clone $repoUrl $repoPath 2>&1
     if (!(Test-Path $repoPath)) {
-        Write-Error "ERROR: Repository cloning failed. Check log: $env:TEMP\gh_clone_log.txt"
-        exit 1
+        Write-Host "GitHub CLI clone failed. Falling back to git clone..."
+        
+        # Use Git to clone the repository as a fallback
+        git clone $repoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\git_clone_log.txt"
+
+        # Check if the repo was successfully cloned
+        if (!(Test-Path $repoPath)) {
+            Write-Error "ERROR: Repository cloning failed. Check logs: $env:TEMP\git_clone_log.txt"
+            exit 1
+        }
     }
 } else {
     Write-Host "Repository already exists. Pulling latest changes..."
