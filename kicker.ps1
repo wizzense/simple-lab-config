@@ -39,8 +39,12 @@ try {
 # (2) Check & Install Git for Windows
 # ------------------------------------------------
 Write-Host "==== Checking if Git is installed ===="
-$gitExe = Get-Command git -ErrorAction SilentlyContinue
-if (-not $gitExe) {
+$gitPath = "C:\Program Files\Git\cmd\git.exe"
+
+# First, check if Git is already installed
+if (Test-Path $gitPath) {
+    Write-Host "Git is already installed at: $gitPath"
+} else {
     Write-Host "Git is not installed. Downloading and installing Git for Windows..."
 
     $gitInstallerUrl = "https://github.com/git-for-windows/git/releases/download/v2.48.1.windows.1/Git-2.48.1-64-bit.exe"
@@ -53,20 +57,23 @@ if (-not $gitExe) {
     Remove-Item -Path $gitInstallerPath -ErrorAction SilentlyContinue
     Write-Host "Git installation completed."
 
-    # Add Git to PATH
-    $gitPath = "C:\Program Files\Git\cmd"
-    if (Test-Path $gitPath) {
-        $env:Path = "$gitPath;$env:Path"
-        [System.Environment]::SetEnvironmentVariable("Path", "$gitPath;$([System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine))", [System.EnvironmentVariableTarget]::Machine)
+    # Ensure Git is in PATH
+    $gitDir = "C:\Program Files\Git\cmd"
+    if (Test-Path $gitDir) {
+        $env:Path = "$gitDir;$env:Path"
+        [System.Environment]::SetEnvironmentVariable("Path", "$gitDir;$([System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine))", [System.EnvironmentVariableTarget]::Machine)
     }
 }
 
-# Verify Git installation
+# **Force refresh of environment variables**
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+
+# **Final Git check**
 $gitVersion = git --version 2>$null
 if ($gitVersion) {
-    Write-Host "Git is installed: $gitVersion"
+    Write-Host "Git is installed and working: $gitVersion"
 } else {
-    Write-Error "ERROR: Git installation failed. Exiting."
+    Write-Error "ERROR: Git installation failed or is not accessible. Exiting."
     exit 1
 }
 
