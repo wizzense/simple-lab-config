@@ -43,7 +43,7 @@ $gitExe = Get-Command git -ErrorAction SilentlyContinue
 if (-not $gitExe) {
     Write-Host "Git is not installed. Downloading and installing Git for Windows..."
 
-    $gitInstallerUrl = "https://github.com/git-for-windows/git/releases/latest/download/Git-2.39.2-64-bit.exe"
+    $gitInstallerUrl = "https://github.com/git-for-windows/git/releases/download/v2.48.1.windows.1/Git-2.48.1-64-bit.exe"
     $gitInstallerPath = Join-Path -Path $env:TEMP -ChildPath "GitInstaller.exe"
 
     Invoke-WebRequest -Uri $gitInstallerUrl -OutFile $gitInstallerPath -UseBasicParsing
