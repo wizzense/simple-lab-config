@@ -21,7 +21,7 @@ $ErrorActionPreference = 'Stop'  # So any error throws an exception
 # ------------------------------------------------
 # (1) Load Configuration
 # ------------------------------------------------
-Write-Host "==== (1) Loading configuration file ===="
+Write-Host "==== Loading configuration file ===="
 if (!(Test-Path $ConfigFile)) {
     Write-Error "ERROR: Could not find config.json at $ConfigFile"
     exit 1
@@ -38,7 +38,7 @@ try {
 # ------------------------------------------------
 # (2) Check GitHub CLI
 # ------------------------------------------------
-Write-Host "==== (3) Check if GitHub CLI is installed ===="
+Write-Host "==== Check if GitHub CLI is installed ===="
 $ghExePath = "C:\Program Files\GitHub CLI\gh.exe"
 if (Test-Path $ghExePath) {
     Write-Host "GitHub CLI found at $ghExePath. Adding to PATH."
@@ -54,10 +54,24 @@ if (Test-Path $ghExePath) {
     Write-Host "GitHub CLI installation completed."
 }
 
+Write-Host "==== Checking GitHub CLI Authentication ===="
+$authStatus = gh auth status 2>&1
+if ($authStatus -match "not logged into github.com") {
+    Write-Host "GitHub CLI is not authenticated. Attempting to log in..."
+    gh auth login --web
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "ERROR: GitHub authentication failed. Please log in manually using 'gh auth login'."
+        exit 1
+    }
+} else {
+    Write-Host "GitHub CLI is authenticated."
+}
+
+
 # ------------------------------------------------
 # (3) Clone or Update Repository
 # ------------------------------------------------
-Write-Host "==== (4) Clone or update the target repository ===="
+Write-Host "==== Clone or update the target repository ===="
 $repoUrl = $config.RepoUrl
 if (-not $repoUrl) {
     Write-Error "ERROR: config.json does not specify 'RepoUrl'."
@@ -92,7 +106,7 @@ if (!(Test-Path $repoPath)) {
 # ------------------------------------------------
 # (4) Invoke the Runner Script
 # ------------------------------------------------
-Write-Host "==== (5) Invoke the runner script ===="
+Write-Host "==== Invoke the runner script ===="
 $runnerScriptName = $config.RunnerScriptName
 if (-not $runnerScriptName) {
     Write-Warning "No runner script specified in config. Exiting gracefully."
