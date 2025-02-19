@@ -44,8 +44,14 @@ if (Test-Path $ghExePath) {
     Write-Host "GitHub CLI found at $ghExePath. Adding to PATH."
     $env:Path = "C:\Program Files\GitHub CLI;$env:Path"
 } else {
-    Write-Error "ERROR: GitHub CLI is not installed. Please install GitHub CLI manually."
-    exit 1
+    Write-Host "GitHub CLI not found. Downloading from $($config.GitHubCLIInstallerUrl)..."
+    $ghCliInstaller = Join-Path -Path $env:TEMP -ChildPath "GitHubCLIInstaller.msi"
+    Invoke-WebRequest -Uri $config.GitHubCLIInstallerUrl -OutFile $ghCliInstaller -UseBasicParsing
+
+    Write-Host "Installing GitHub CLI silently..."
+    Start-Process msiexec.exe -ArgumentList "/i `"$ghCliInstaller`" /quiet /norestart /log `"$env:TEMP\ghCliInstall.log`"" -Wait -Verb RunAs
+    Remove-Item -Path $ghCliInstaller -ErrorAction SilentlyContinue
+    Write-Host "GitHub CLI installation completed."
 }
 
 # ------------------------------------------------
@@ -73,11 +79,11 @@ $repoPath = Join-Path $localPath $repoName
 
 if (!(Test-Path $repoPath)) {
     Write-Host "Cloning repository from $repoUrl to $repoPath..."
-    git clone $repoUrl $repoPath
+    gh clone $repoUrl $repoPath
 } else {
     Write-Host "Repository already exists. Pulling latest changes..."
     Push-Location $repoPath
-    git pull
+    gh pull
     Pop-Location
 }
 
