@@ -1,6 +1,14 @@
 <#
 .SYNOPSIS
   Kicker script for a fresh Windows Server Core setup with robust error handling.
+
+  1) Loads config.json from the same folder by default (override with -ConfigFile).
+  2) Checks if command-line Git is installed and in PATH.
+     - Installs a minimal version if missing.
+     - Updates PATH if installed but not found in PATH.
+  3) Checks if GitHub CLI is installed (optional).
+  4) Clones a repository from config.json -> RepoUrl to config.json -> LocalPath (or a default path).
+  5) Invokes runner.ps1 from that repo.
 #>
 
 Param(
@@ -8,7 +16,7 @@ Param(
 )
 
 Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'  # So any error throws an exception
 
 # ------------------------------------------------
 # (1) Load Configuration
@@ -28,179 +36,69 @@ try {
 }
 
 # ------------------------------------------------
-# (2) Helper Functions
+# (2) Check GitHub CLI
 # ------------------------------------------------
-function Test-ProductInstalled {
-    param([string[]]$productNames)
-    try {
-        $installedApps = @()
-        $installedApps += Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* 2>$null |
-                          Select-Object DisplayName, InstallLocation
-        $installedApps += Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* 2>$null |
-                          Select-Object DisplayName, InstallLocation
-
-        foreach ($productName in $productNames) {
-            if ($installedApps | Where-Object { $_.DisplayName -like "*$productName*" }) { return $true }
-        }
-    } catch {}
-    return $false
-}
-
-function Test-GitInPath {
-    try { git --version | Out-Null; return $true } catch { return $false }
-}
-
-function Test-GhInPath {
-    try { gh --version | Out-Null; return $true } catch { return $false }
-}
-
-# ------------------------------------------------
-# (3) Ensure Git is Installed and in PATH
-# ------------------------------------------------
-Write-Host "==== (2) Check if Git is installed and in PATH ===="
-$gitInPath = Test-GitInPath
-
-if (-not $gitInPath) {
-    Write-Warning "Git is installed but not found in PATH. Attempting to locate Git manually."
-    
-    $possibleGitLocations = @(
-        "C:\Program Files\Git\cmd",
-        "C:\Program Files\Git\bin",
-        "C:\Program Files (x86)\Git\cmd",
-        "C:\Program Files (x86)\Git\bin"
-    )
-    foreach ($location in $possibleGitLocations) {
-        if (Test-Path "$location\git.exe") {
-            $env:Path = "$location;$env:Path"
-            Write-Host "Manually added Git to PATH: $location"
-            break
-        }
-    }
-
-    if (Test-GitInPath) {
-        Write-Host "Git is now available in PATH."
-        $gitInPath = $true
-    } else {
-        Write-Error "Git is not recognized even after manual PATH fix."
-        exit 1
-    }
-}
-
-# Persist Git in System PATH
-[System.Environment]::SetEnvironmentVariable("Path", "$env:Path", [System.EnvironmentVariableTarget]::Machine)
-
-# ------------------------------------------------
-# (4) Configure Git (If Available)
-# ------------------------------------------------
-if ($gitInPath) {
-    Write-Host "Configuring Git username/email..."
-    try {
-        git config --global user.name $config.GitUsername
-        git config --global user.email $config.GitEmail
-    } catch {
-        Write-Error "Failed to configure Git. $($_.Exception.Message)"
-    }
+Write-Host "==== (3) Check if GitHub CLI is installed ===="
+$ghExePath = "C:\Program Files\GitHub CLI\gh.exe"
+if (Test-Path $ghExePath) {
+    Write-Host "GitHub CLI found at $ghExePath. Adding to PATH."
+    $env:Path = "C:\Program Files\GitHub CLI;$env:Path"
 } else {
-    Write-Error "Git is required but not available. Exiting."
+    Write-Error "ERROR: GitHub CLI is not installed. Please install GitHub CLI manually."
     exit 1
 }
 
 # ------------------------------------------------
-# (5) Check/Install GitHub CLI (Optional)
-# ------------------------------------------------
-Write-Host "==== (3) Check if GitHub CLI is installed (optional) ===="
-$ghInPath = Test-GhInPath
-
-if (-not $ghInPath) {
-    Write-Warning "GitHub CLI is installed but not in PATH. Attempting to locate it."
-    
-    $possibleGhLocations = @(
-        "C:\Program Files\GitHub CLI\gh.exe",
-        "C:\Program Files (x86)\GitHub CLI\gh.exe"
-    )
-    foreach ($location in $possibleGhLocations) {
-        if (Test-Path $location) {
-            $env:Path = "$location;$env:Path"
-            Write-Host "Manually added GitHub CLI to PATH: $location"
-            break
-        }
-    }
-}
-
-# ------------------------------------------------
-# (6) Clone or Update the Repository
+# (3) Clone or Update Repository
 # ------------------------------------------------
 Write-Host "==== (4) Clone or update the target repository ===="
-if (-not $gitInPath) {
-    Write-Error "ERROR: We cannot continue because Git is not available in PATH."
-    exit 1
-}
-
 $repoUrl = $config.RepoUrl
 if (-not $repoUrl) {
     Write-Error "ERROR: config.json does not specify 'RepoUrl'."
     exit 1
 }
 
-if ([string]::IsNullOrWhiteSpace($config.LocalPath)) {
-    $config.LocalPath = Join-Path $env:USERPROFILE "Documents\ServerSetup"
+$localPath = $config.LocalPath
+if (-not $localPath) {
+    $localPath = "$env:USERPROFILE\Documents\ServerSetup"
 }
 
-Write-Host "Ensuring local path '$($config.LocalPath)' exists..."
-try {
-    if (-not (Test-Path $config.LocalPath)) {
-        New-Item -ItemType Directory -Path $config.LocalPath | Out-Null
-    }
-} catch {
-    Write-Error "ERROR: Could not create local path $($config.LocalPath). $($_.Exception.Message)"
-    exit 1
+Write-Host "Ensuring local path '$localPath' exists..."
+if (!(Test-Path $localPath)) {
+    New-Item -ItemType Directory -Path $localPath | Out-Null
 }
 
 $repoName = ($repoUrl.Split('/')[-1]).Replace(".git", "")
-$repoPath = Join-Path $config.LocalPath $repoName
+$repoPath = Join-Path $localPath $repoName
 
-if (-not (Test-Path $repoPath)) {
-    Write-Host "Repository doesn't exist locally. Cloning from $repoUrl..."
-    try {
-        git clone $repoUrl $repoPath
-    } catch {
-        Write-Error "ERROR: Failed to clone from $repoUrl. $($_.Exception.Message)"
-        exit 1
-    }
+if (!(Test-Path $repoPath)) {
+    Write-Host "Cloning repository from $repoUrl to $repoPath..."
+    git clone $repoUrl $repoPath
 } else {
-    Write-Host "Repository already exists at $repoPath. Pulling latest changes..."
+    Write-Host "Repository already exists. Pulling latest changes..."
     Push-Location $repoPath
-    try {
-        git pull
-    } catch {
-        Write-Warning "Could not pull updates. $($_.Exception.Message)"
-    }
+    git pull
     Pop-Location
 }
 
 # ------------------------------------------------
-# (7) Invoke the Runner Script
+# (4) Invoke the Runner Script
 # ------------------------------------------------
 Write-Host "==== (5) Invoke the runner script ===="
 $runnerScriptName = $config.RunnerScriptName
 if (-not $runnerScriptName) {
-    Write-Warning "No runner script name specified in config. Exiting gracefully."
+    Write-Warning "No runner script specified in config. Exiting gracefully."
     exit 0
 }
 
 Set-Location $repoPath
-if (-not (Test-Path $runnerScriptName)) {
+if (!(Test-Path $runnerScriptName)) {
     Write-Error "ERROR: Could not find $runnerScriptName in $repoPath. Exiting."
     exit 1
 }
 
 Write-Host "Running $runnerScriptName from $repoPath ..."
-try {
-    . .\$runnerScriptName
-} catch {
-    Write-Error "ERROR: $runnerScriptName threw an exception. $($_.Exception.Message)"
-    exit 1
-}
+. .\$runnerScriptName
 
-Write-Host "=== Kicker script finished successfully! ==="
+Write-Host "\n=== Kicker script finished successfully! ==="
 exit 0
