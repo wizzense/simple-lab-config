@@ -3,51 +3,6 @@ Param(
     [PSCustomObject]$Config
 )
 
-Write-Host "Checking for existing Certificate Authority (Standalone Root CA)..."
-
-# Only proceed if you actually want to install a CA.
-if ($null -eq $Config.CertificateAuthority) {
-    Write-Host "No CA config found. Skipping CA installation."
-    return
-}
-
-$CAName        = $Config.CertificateAuthority.CommonName
-$ValidityYears = $Config.CertificateAuthority.ValidityYears
-
-if (-not $CAName) {
-    Write-Host "Missing CAName in config. Skipping CA installation."
-    return
-}
-
-# Check if the CA role is already installed
-$role = Get-WindowsFeature -Name Adcs-Cert-Authority
-if ($role.Installed) {
-    Write-Host "Certificate Authority role is already installed. Checking CA configuration..."
-    
-    # Check if a CA is already configured
-    $existingCA = Get-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration' -ErrorAction SilentlyContinue
-    if ($existingCA) {
-        Write-Host "A Certificate Authority is already configured. Skipping installation."
-    } else {
-        Write-Host "CA role is installed but no CA is configured. Proceeding with installation."
-    }
-} else {
-    Write-Host "Installing Certificate Authority role..."
-    Install-WindowsFeature Adcs-Cert-Authority -IncludeManagementTools -ErrorAction Stop
-
-    Write-Host "Configuring CA: $CAName with $($ValidityYears) year validity..."
-    Install-AdcsCertificationAuthority `
-        -CAType StandaloneRootCA `
-        -CACommonName $CAName `
-        -KeyLength 2048 `
-        -HashAlgorithm SHA256 `
-        -ValidityPeriod Years `
-        -ValidityPeriodUnits $ValidityYears `
-        -Force
-
-    Write-Host "Standalone Root CA '$CAName' installation complete."
-}
-
 # ---- WAC Installation & Certificate Assignment ----
 
 Write-Host "Checking for existing Windows Admin Center installation..."
@@ -81,15 +36,18 @@ $certSubject  = if ($WacConfig.PSObject.Properties["CertificateSubject"]) {
     "WAC-Cert-$env:COMPUTERNAME"  # Default to a reasonable fallback
 }
 
+# Capture CA name from config
+$CAName = $Config.CertificateAuthority.CommonName
+Write-Host "Using CA name: $CAName"
+
 # 1. Generate or retrieve a valid certificate from the CA for WAC
-
 Write-Host "Checking for an existing certificate with Friendly Name '$certFriendly'..."
-
 $cert = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.FriendlyName -eq $certFriendly } | Select-Object -First 1
 
 if (-not $cert) {
     Write-Host "No existing certificate found. Requesting a new certificate from CA..."
 
+    # Prepare the .INF text for certreq
     $certRequest = @"
 [NewRequest]
 Subject="CN=$certSubject"
@@ -99,22 +57,44 @@ KeySpec=1
 HashAlgorithm=SHA256
 RequestType=PKCS10
 MachineKeySet=TRUE
+[RequestAttributes]
+CertificateTemplate=WebServer
 "@
 
-    $reqFile = "$env:TEMP\WACCert.req"
-    $certFile = "$env:TEMP\WACCert.cer"
-    
-    $certRequest | Out-File -Encoding ascii -FilePath $reqFile
+    # Paths
+    $infFile      = "$env:TEMP\WACCert.inf"
+    $reqFile      = "$env:TEMP\WACCert.req"
+    $certFile     = "$env:TEMP\WACCert.cer"
 
-    certreq -new $reqFile $certFile
-    certreq -submit -config "$CAName" $certFile
+    # Create the INF
+    $certRequest | Out-File -Encoding ascii -FilePath $infFile
 
+    # 1a. Generate a certificate request (.req)
+    certreq -new $infFile $reqFile
+
+    # 1b. Submit the request to the CA (which returns the .cer file)
+    certreq -submit -config "$CAName" $reqFile $certFile
+
+    # 1c. Import the issued certificate
     Write-Host "Importing issued certificate..."
     $importedCert = Import-Certificate -FilePath $certFile -CertStoreLocation Cert:\LocalMachine\My
+
+    # 1d. Update FriendlyName after import
+    #     (FriendlyName doesn’t come from the .INF, so we set it manually)
     $certThumbprint = $importedCert.Thumbprint
+    $storePath      = "Cert:\LocalMachine\My\$certThumbprint"
+    (Get-Item $storePath).FriendlyName = $certFriendly
+
+    # Retrieve the updated certificate object
+    $cert = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.Thumbprint -eq $certThumbprint }
 } else {
     Write-Host "Using existing certificate."
-    $certThumbprint = $cert.Thumbprint
+}
+
+# Make sure we have a valid certificate reference
+if (-not $cert) {
+    Write-Host "ERROR: The certificate was not found or could not be imported."
+    return
 }
 
 # 2. Download the Windows Admin Center MSI
@@ -125,7 +105,7 @@ Write-Host "Downloading WAC from $downloadUrl"
 Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing
 
 # 3. Install WAC with the generated certificate
-Write-Host "Installing WAC silently on port $installPort with certificate thumbprint $certThumbprint"
-Start-Process msiexec.exe -Wait -ArgumentList "/i `"$installerPath`" /qn /L*v `"$env:TEMP\WacInstall.log`" SME_PORT=$installPort SME_THUMBPRINT=$certThumbprint ACCEPT_EULA=1"
+Write-Host "Installing WAC silently on port $installPort with certificate thumbprint $($cert.Thumbprint)"
+Start-Process msiexec.exe -Wait -ArgumentList "/i `"$installerPath`" /qn /L*v `"$env:TEMP\WacInstall.log`" SME_PORT=$installPort SME_THUMBPRINT=$($cert.Thumbprint) ACCEPT_EULA=1"
 
 Write-Host "Windows Admin Center installation complete with certificate applied."
