@@ -5,6 +5,15 @@ Param(
 
 # ---- WAC Installation & Certificate Assignment ----
 
+# Run as Administrator
+Set-ItemProperty `
+    -Path "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration\core-lab-RootCA\PolicyModules\CertificateAuthority_MicrosoftDefault.Policy" `
+    -Name "SetPendingRequests" `
+    -Value 0
+
+Restart-Service certsvc
+
+
 Write-Host "Checking for existing Windows Admin Center installation..."
 
 $wacInstalled = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -match "Windows Admin Center" }
