@@ -14,7 +14,7 @@ Write-Host "Starting SCOM certificate request..."
 # 1. Pull from config (adjust as needed)
 $CAName        = $Config.CertificateAuthority.CommonName
 $subject       = $Config.SCOMCert.Subject
-$template      = $Config.SCOMCert.Template
+#$template      = $Config.SCOMCert.Template
 $friendlyName  = $Config.SCOMCert.FriendlyName
 if (-not $friendlyName) { $friendlyName = "SCOM Certificate" }
 
