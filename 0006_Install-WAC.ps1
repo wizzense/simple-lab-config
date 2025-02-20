@@ -73,7 +73,7 @@ MachineKeySet=TRUE
     certreq -new $infFile $reqFile
 
     # 1b. Submit the request to the CA (which returns the .cer file)
-    certreq -submit -config "$CAName" $reqFile $certFile
+    certreq -submit $reqFile $certFile
 
     # 1c. Import the issued certificate
     Write-Host "Importing issued certificate..."
