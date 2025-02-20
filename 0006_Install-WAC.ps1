@@ -49,17 +49,18 @@ if (-not $cert) {
 
     # Prepare the .INF text for certreq
     $certRequest = @"
-[NewRequest]
-Subject="CN=$certSubject"
-Exportable=TRUE
-KeyLength=2048
-KeySpec=1
-HashAlgorithm=SHA256
-RequestType=PKCS10
-MachineKeySet=TRUE
-[RequestAttributes]
-CertificateTemplate=WebServer
-"@
+    [NewRequest]
+    Subject="CN=$certSubject"
+    Exportable=TRUE
+    KeyLength=2048
+    KeySpec=1
+    HashAlgorithm=SHA256
+    RequestType=PKCS10
+    MachineKeySet=TRUE
+    
+    ; [RequestAttributes]
+    ; CertificateTemplate=WebServer
+    "@
 
     # Paths
     $infFile      = "$env:TEMP\WACCert.inf"
