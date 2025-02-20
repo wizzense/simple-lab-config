@@ -57,9 +57,6 @@ if (-not $cert) {
     HashAlgorithm=SHA256
     RequestType=PKCS10
     MachineKeySet=TRUE
-    
-    ; [RequestAttributes]
-    ; CertificateTemplate=WebServer
     "@
 
     # Paths
