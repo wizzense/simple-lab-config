@@ -4,7 +4,7 @@ Param(
 )
 
 # ---- WAC Installation & Certificate Assignment ----
-
+#
 Write-Host "Checking for existing Windows Admin Center installation..."
 
 $wacInstalled = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -match "Windows Admin Center" }
