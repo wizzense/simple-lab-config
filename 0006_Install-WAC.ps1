@@ -3,107 +3,129 @@ Param(
     [PSCustomObject]$Config
 )
 
-# ---- WAC Installation & Certificate Assignment ----
+# Example usage assumptions for $Config:
+# $Config.CertificateAuthority.CommonName = "MyCA.domain.local\MyCAName"
+# $Config.SCOMCert.Subject = "server01.domain.local"
+# $Config.SCOMCert.Template = "OperationsManager"   # If you have an Enterprise CA template
+# $Config.SCOMCert.FriendlyName = "SCOM Certificate"
 
-# Run as Administrator
-Set-ItemProperty `
-    -Path "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration\core-lab-RootCA\PolicyModules\CertificateAuthority_MicrosoftDefault.Policy" `
-    -Name "SetPendingRequests" `
-    -Value 0
+Write-Host "Starting SCOM certificate request..."
 
-Restart-Service certsvc
+# 1. Pull from config (adjust as needed)
+$CAName        = $Config.CertificateAuthority.CommonName
+$subject       = $Config.SCOMCert.Subject
+$template      = $Config.SCOMCert.Template
+$friendlyName  = $Config.SCOMCert.FriendlyName
+if (-not $friendlyName) { $friendlyName = "SCOM Certificate" }
 
+# 2. Create the .inf contents
+#    NOTE: KeyExportable can be TRUE or FALSE. For SCOM, typically "FALSE" is recommended
+#    in production unless you need to move the private key to another machine. 
+#    The doc example uses KeyExportable=FALSE if the cert is generated on the final machine.
+#    The doc also notes for SCOM:
+#      - KeyUsage = 0xf0 (Digital Signature, Key Encipherment)
+#      - EnhancedKeyUsageExtension: 1.3.6.1.5.5.7.3.1 & 1.3.6.1.5.5.7.3.2
+#
+#    If you have an Enterprise CA with a named certificate template, you can add:
+#    [RequestAttributes]
+#    CertificateTemplate="OperationsManager"
+#    to request that template automatically.
 
-Write-Host "Checking for existing Windows Admin Center installation..."
+$infFile = "$env:TEMP\SCOMCert.inf"
+$reqFile = "$env:TEMP\SCOMCert.req"
+$cerFile = "$env:TEMP\SCOMCert.cer"
 
-$wacInstalled = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -match "Windows Admin Center" }
-if ($wacInstalled) {
-    Write-Host "Windows Admin Center is already installed. Skipping installation."
-    return
-}
+$infContent = @"
+[Version]
+Signature="\$Windows NT\$"
 
-Write-Host "Installing Windows Admin Center..."
-
-# Check if WAC is configured in the provided config
-$WacConfig = $Config.WAC
-if ($null -eq $WacConfig) {
-    Write-Host "No WAC configuration found. Skipping installation."
-    return
-}
-
-# Validate that required properties exist
-if (-not $WacConfig.PSObject.Properties["InstallPort"] -or -not $WacConfig.PSObject.Properties["FriendlyName"]) {
-    Write-Host "Error: Missing required properties (InstallPort or FriendlyName) in WAC config. Exiting."
-    return
-}
-
-$installPort  = $WacConfig.InstallPort
-$certFriendly = $WacConfig.FriendlyName
-$certSubject  = if ($WacConfig.PSObject.Properties["CertificateSubject"]) { 
-    $WacConfig.CertificateSubject 
-} else { 
-    "WAC-Cert-$env:COMPUTERNAME"  # Default to a reasonable fallback
-}
-
-# Capture CA name from config
-$CAName = $Config.CertificateAuthority.CommonName
-Write-Host "Using CA name: $CAName"
-
-# 1. Generate or retrieve a valid certificate from the CA for WAC
-Write-Host "Checking for an existing certificate with Friendly Name '$certFriendly'..."
-$cert = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.FriendlyName -eq $certFriendly } | Select-Object -First 1
-
-if (-not $cert) {
-    Write-Host "No existing certificate found. Requesting a new certificate from CA..."
-
-    # Prepare the .INF text for certreq
-    $certRequest = @"
 [NewRequest]
-Subject="CN=$certSubject"
-Exportable=TRUE
-KeyLength=2048
-KeySpec=1
+Subject="CN=$subject"
+KeyExportable=FALSE
 HashAlgorithm=SHA256
-RequestType=PKCS10
+KeyLength=2048
+KeySpec=1 ; AT_KEYEXCHANGE
+KeyUsage=0xf0 ; Digital Signature, Key Encipherment
 MachineKeySet=TRUE
-[RequestAttributes]
-; CertificateTemplate=WebServer
+ProviderName="Microsoft RSA SChannel Cryptographic Provider"
+ProviderType=12
+KeyAlgorithm="RSA"
+
+[EnhancedKeyUsageExtension]
+OID=1.3.6.1.5.5.7.3.1 ; Server Authentication
+OID=1.3.6.1.5.5.7.3.2 ; Client Authentication
 "@
 
-    # Paths
-    $infFile      = "$env:TEMP\WACCert.inf"
-    $reqFile      = "$env:TEMP\WACCert.req"
-    $certFile     = "$env:TEMP\WACCert.cer"
+# If you have an Enterprise CA and want to specify a SCOM-friendly template:
+if ($template) {
+$infContent += @"
 
-    # Create the INF
-    $certRequest | Out-File -Encoding ascii -FilePath $infFile
-
-    # 1a. Generate a certificate request (.req)
-    certreq -new $infFile $reqFile
-
-    # 1b. Submit the request to the CA (which returns the .cer file)
-    certreq -submit -config $CAName $reqFile $certFile
-
-    # 1c. Import the issued certificate
-    Write-Host "Importing issued certificate..."
-    $importedCert = Import-Certificate -FilePath $certFile -CertStoreLocation Cert:\LocalMachine\My
-
-    # 1d. Update FriendlyName after import
-    #     (FriendlyName doesn’t come from the .INF, so we set it manually)
-    $certThumbprint = $importedCert.Thumbprint
-    $storePath      = "Cert:\LocalMachine\My\$certThumbprint"
-    (Get-Item $storePath).FriendlyName = $certFriendly
-
-    # Retrieve the updated certificate object
-    $cert = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.Thumbprint -eq $certThumbprint }
-} else {
-    Write-Host "Using existing certificate."
+[RequestAttributes]
+CertificateTemplate="$template"
+"@
 }
 
-# Make sure we have a valid certificate reference
-if (-not $cert) {
-    Write-Host "ERROR: The certificate was not found or could not be imported."
+$infContent | Out-File -FilePath $infFile -Encoding ascii
+Write-Host "INF file created at: $infFile"
+
+# 3. Generate the .req file
+Write-Host "Generating certificate request (.req)..."
+certreq -new $infFile $reqFile
+
+if (-not (Test-Path $reqFile)) {
+    Write-Host "ERROR: The req file wasn't created. Exiting."
     return
+}
+
+Write-Host "Submitting request to CA: $CAName"
+# If $CAName is nonempty, try using -config. 
+# If your environment doesn't have a known config or you have multiple CAs,
+# you can omit -config and let the user choose from the GUI.
+if ([string]::IsNullOrEmpty($CAName)) {
+    # This triggers GUI selection:
+    certreq -submit $reqFile $cerFile
+}
+else {
+    certreq -submit -config "$CAName" $reqFile $cerFile
+}
+
+# If the CA is set to "Manual Approval," the request might come back as "Taken Under Submission."
+# If the CA auto-issues, the .cer should appear here. Let's see if it exists:
+if (-not (Test-Path $cerFile)) {
+    Write-Host "Certificate file $cerFile not found. Possibly the request is pending approval."
+    Write-Host "Once approved, retrieve the certificate (or run 'certreq -retrieve <ReqID> $cerFile')"
+    return
+}
+
+# 4. Import or accept the .cer
+Write-Host "Attempting to import the certificate..."
+try {
+    # 'certreq -accept' will bind it properly to the private key if it was auto-issued.
+    # Alternatively, we can do:
+    # Import-Certificate -FilePath $cerFile -CertStoreLocation Cert:\LocalMachine\My
+    certreq -accept $cerFile
+
+    # After acceptance, find its thumbprint:
+    $importedCert = Get-ChildItem Cert:\LocalMachine\My | Where-Object {
+        $_.Subject -eq "CN=$subject"
+    } | Sort-Object NotBefore -Descending | Select-Object -First 1
+
+    if ($importedCert) {
+        # Update FriendlyName in the local certificate store
+        $storePath = "Cert:\LocalMachine\My\$($importedCert.Thumbprint)"
+        (Get-Item $storePath).FriendlyName = $friendlyName
+
+        Write-Host "Certificate imported successfully:"
+        Write-Host "  Subject: $($importedCert.Subject)"
+        Write-Host "  Thumbprint: $($importedCert.Thumbprint)"
+        Write-Host "  FriendlyName set to: $friendlyName"
+    }
+    else {
+        Write-Host "ERROR: Certificate accepted but not found in the local store by subject=CN=$subject."
+    }
+}
+catch {
+    Write-Host "ERROR: Couldn't accept the certificate automatically. Details: $($_.Exception.Message)"
 }
 
 # 2. Download the Windows Admin Center MSI
