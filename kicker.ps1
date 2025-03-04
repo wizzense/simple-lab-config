@@ -93,7 +93,17 @@ if (Test-Path $ghExePath) {
     Write-Host "Installing GitHub CLI silently..."
     Start-Process msiexec.exe -ArgumentList "/i `"$ghCliInstaller`" /quiet /norestart /log `"$env:TEMP\ghCliInstall.log`"" -Wait -Verb RunAs
     Remove-Item -Path $ghCliInstaller -ErrorAction SilentlyContinue
+
     Write-Host "GitHub CLI installation completed."
+}
+
+if (!(Get-Command gh -ErrorAction SilentlyContinue)) {
+    $ghPath = "C:\Program Files\GitHub CLI\gh.exe"
+    if (Test-Path $ghPath) {
+        $env:Path = "C:\Program Files\GitHub CLI;$env:Path"
+        # **Force refresh of environment variables**
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    }
 }
 
 Write-Host "==== Checking GitHub CLI Authentication ===="
