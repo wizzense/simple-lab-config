@@ -1,3 +1,9 @@
+Param(
+    [Parameter(Mandatory=$true)]
+    [PSCustomObject]$Config
+)
+
+
 # Environment Preparation
 # ------------------------
 # Install HyperV
