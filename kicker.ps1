@@ -108,9 +108,9 @@ if (!(Get-Command gh -ErrorAction SilentlyContinue)) {
 
 Write-Host "==== Checking GitHub CLI Authentication ===="
 $authStatus = gh auth status 2>&1
-if ($authStatus -match "not logged into github.com") {
+if ($authStatus -match "You are not logged into any GitHub hosts. To log in, run: gh auth login") {
     Write-Host "GitHub CLI is not authenticated. Attempting to log in..."
-    gh auth login --web
+    gh auth login -w -p https
     if ($LASTEXITCODE -ne 0) {
         Write-Error "ERROR: GitHub authentication failed. Please log in manually using 'gh auth login'."
         exit 1
