@@ -3,20 +3,6 @@ Param(
     [PSCustomObject]$Config
 )
 
-# Check if Windows Admin Center is already installed or running
-$wacService = Get-Service -DisplayName "Windows Admin Center" -ErrorAction SilentlyContinue
-if ($wacService) {
-    Write-Host "Windows Admin Center is already installed."
-    if ($wacService.Status -eq "Running") {
-        Write-Host "Windows Admin Center service is running. Skipping installation."
-    } else {
-        Write-Host "Windows Admin Center is installed but not running. Consider starting the service."
-    }
-    return
-}
-
-Write-Host "Installing Windows Admin Center..."
-
 # Retrieve configuration for WAC from the config object
 $WacConfig = $Config.WAC
 if ($null -eq $WacConfig) {
@@ -25,6 +11,31 @@ if ($null -eq $WacConfig) {
 }
 
 $installPort = $WacConfig.InstallPort
+
+# Check registry uninstall keys for Windows Admin Center installation
+$wacInstalled = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall" -ErrorAction SilentlyContinue | 
+    ForEach-Object { Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue } | 
+    Where-Object { $_.DisplayName -like "*Windows Admin Center*" }
+
+if (-not $wacInstalled) {
+    $wacInstalled = Get-ChildItem "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" -ErrorAction SilentlyContinue | 
+        ForEach-Object { Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue } | 
+        Where-Object { $_.DisplayName -like "*Windows Admin Center*" }
+}
+
+if ($wacInstalled) {
+    Write-Host "Windows Admin Center is already installed. Skipping installation."
+    return
+}
+
+# Optionally, check if the desired installation port is already in use.
+$portInUse = Get-NetTCPConnection -LocalPort $installPort -ErrorAction SilentlyContinue
+if ($portInUse) {
+    Write-Host "Port $installPort is already in use. Assuming Windows Admin Center is running. Skipping installation."
+    return
+}
+
+Write-Host "Installing Windows Admin Center..."
 
 # Download the Windows Admin Center MSI
 $downloadUrl = "https://aka.ms/wacdownload"
