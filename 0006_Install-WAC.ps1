@@ -15,12 +15,12 @@ $installPort = $WacConfig.InstallPort
 # Check registry uninstall keys for Windows Admin Center installation
 $wacInstalled = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall" -ErrorAction SilentlyContinue | 
     ForEach-Object { Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue } | 
-    Where-Object { $_.DisplayName -like "*Windows Admin Center*" }
+    Where-Object { $_.DisplayName -like "*Windows Admin Center*" } -ErrorAction Continue
 
 if (-not $wacInstalled) {
     $wacInstalled = Get-ChildItem "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" -ErrorAction SilentlyContinue | 
         ForEach-Object { Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue } | 
-        Where-Object { $_.DisplayName -like "*Windows Admin Center*" }
+        Where-Object { $_.DisplayName -like "*Windows Admin Center*" } -ErrorAction Continue
 }
 
 if ($wacInstalled) {
