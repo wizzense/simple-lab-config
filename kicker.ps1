@@ -186,9 +186,16 @@ if (-not $repoPath) {
 if (!(Test-Path $repoPath)) {
     Write-Host "Cloning repository from $($config.RepoUrl) to $repoPath..."
     
+    # Temporarily relax error action to avoid stopping on noncritical errors
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    
     gh repo clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
+    
+    # Restore the original error action preference
+    $ErrorActionPreference = $prevEAP
 
-    # Fallback to git if GitHub CLI fails
+    # Fallback to git if GitHub CLI clone appears to have failed
     if (!(Test-Path $repoPath)) {
         Write-Host "GitHub CLI clone failed. Trying git clone..."
         git clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\git_clone_log.txt"
