@@ -70,6 +70,10 @@ PS> .\install-opentofu.ps1 -installMethod standalone
 
 #>
 param(
+
+    [Parameter(Mandatory=$true)]
+    [PSCustomObject]$Config,
+
     [Parameter(Mandatory = $false)]
     [switch]$help = $false,
 
