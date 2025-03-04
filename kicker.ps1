@@ -98,13 +98,28 @@ if (Test-Path $ghExePath) {
 }
 
 if (!(Get-Command gh -ErrorAction SilentlyContinue)) {
-    $ghPath = "C:\Program Files\GitHub CLI\gh.exe"
-    if (Test-Path $ghPath) {
-        $env:Path = "C:\Program Files\GitHub CLI;$env:Path"
-        # **Force refresh of environment variables**
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    $ghExe = "C:\Program Files\GitHub CLI\gh.exe"
+    if (Test-Path $ghExe) {
+        # Get the current machine PATH
+        $currentMachinePath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine)
+        
+        # Check if the GitHub CLI path is already included
+        if ($currentMachinePath -notmatch [regex]::Escape("C:\Program Files\GitHub CLI")) {
+            # Prepend GitHub CLI to the machine PATH
+            $newMachinePath = "C:\Program Files\GitHub CLI;" + $currentMachinePath
+            [System.Environment]::SetEnvironmentVariable("Path", $newMachinePath, [System.EnvironmentVariableTarget]::Machine)
+            Write-Host "Added GitHub CLI to the system PATH. Please restart your session or computer for changes to take effect."
+        } else {
+            Write-Host "GitHub CLI is already in the system PATH."
+        }
     }
+    else {
+        Write-Error "gh.exe not found at '$ghExe'"
+    }
+} else {
+    Write-Host "GitHub CLI is already accessible via the PATH."
 }
+
 
 Write-Host "==== Checking GitHub CLI Authentication ===="
 
