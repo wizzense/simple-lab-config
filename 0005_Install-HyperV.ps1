@@ -19,9 +19,9 @@ $enableMgtTools = $Config.HyperV.EnableManagementTools -eq $true
 $restart = $false  # Change to $true if you want an automatic restart
 
 if ($restart) {
-    Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -Restart -ErrorAction Stop
+    Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -Restart -ErrorAction Continue
 } else {
-    Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -ErrorAction Stop
+    Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -ErrorAction Continue
 }
 
 Write-Host "Hyper-V installation complete. A restart is typically required to finalize installation."
