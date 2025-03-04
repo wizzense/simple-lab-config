@@ -108,27 +108,33 @@ if (!(Get-Command gh -ErrorAction SilentlyContinue)) {
 
 Write-Host "==== Checking GitHub CLI Authentication ===="
 
-Write-Host "==== Checking GitHub CLI Authentication ===="
-
-# Run the command and discard its output
-& gh auth status 2>&1 | Out-Null
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "GitHub CLI is not authenticated. Attempting to log in..."
-    # Launch interactive login (this will open your browser)
-    Start-Process -FilePath "gh" -ArgumentList "auth login --web --protocol https" -Wait
-
-    # Re-run the auth check
-    & gh auth status 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "ERROR: GitHub authentication failed. Please log in manually using 'gh auth login'."
-        exit 1
-    } else {
-        Write-Host "GitHub CLI is now authenticated."
-    }
-} else {
+try {
+    # This will throw if not authenticated because $ErrorActionPreference is 'Stop'
+    $authStatus = & gh auth status 2>&1
     Write-Host "GitHub CLI is authenticated."
 }
+catch {
+    Write-Host "GitHub CLI is not authenticated. Attempting to log in..."
+    try {
+        # Launch interactive login (opens your browser)
+        Start-Process -FilePath "gh" -ArgumentList "auth login --web --protocol https" -Wait -ErrorAction Stop
+    }
+    catch {
+        Write-Error "ERROR: Failed to initiate interactive GitHub CLI login."
+        exit 1
+    }
+    
+    # After interactive login, recheck authentication
+    try {
+        $authStatus = & gh auth status 2>&1
+        Write-Host "GitHub CLI is now authenticated."
+    }
+    catch {
+        Write-Error "ERROR: GitHub authentication failed. Please log in manually using 'gh auth login'."
+        exit 1
+    }
+}
+
 
 
 
