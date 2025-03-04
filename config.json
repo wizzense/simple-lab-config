@@ -10,16 +10,11 @@
       "CommonName": "core-lab-RootCA",
       "ValidityYears": 5
     },
-    "SCOMCert":{
-      "Subject": "core-lab",
-      "FriendlyName":"WAC SSL Certificate"
-    },
     "HyperV": {
       "EnableManagementTools": true
     },
     "WAC": {
-      "InstallPort": 443,
-      "FriendlyName": "WAC SSL Certificate"
+      "InstallPort": 443
     },
     "GitUsername": "wizzense",
     "GitEmail": "wizzense@wizzense.com",
@@ -31,6 +26,5 @@
     
     "RunnerScriptName": "runner.ps1"
 
-    
   }
   
