@@ -3,18 +3,28 @@ Param(
     [PSCustomObject]$Config
 )
 
+# Check if Windows Admin Center is already installed or running
+$wacService = Get-Service -DisplayName "Windows Admin Center" -ErrorAction SilentlyContinue
+if ($wacService) {
+    Write-Host "Windows Admin Center is already installed."
+    if ($wacService.Status -eq "Running") {
+        Write-Host "Windows Admin Center service is running. Skipping installation."
+    } else {
+        Write-Host "Windows Admin Center is installed but not running. Consider starting the service."
+    }
+    return
+}
+
 Write-Host "Installing Windows Admin Center..."
 
-# Because Windows Admin Center is updated frequently, we point to https://aka.ms/wacdownload
-# but we can configure the port and certificate from config.
-
+# Retrieve configuration for WAC from the config object
 $WacConfig = $Config.WAC
 if ($null -eq $WacConfig) {
     Write-Host "No WAC configuration found. Skipping installation."
     return
 }
 
-$installPort     = $WacConfig.InstallPort
+$installPort = $WacConfig.InstallPort
 
 # Download the Windows Admin Center MSI
 $downloadUrl = "https://aka.ms/wacdownload"
