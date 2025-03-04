@@ -108,16 +108,23 @@ if (!(Get-Command gh -ErrorAction SilentlyContinue)) {
 
 Write-Host "==== Checking GitHub CLI Authentication ===="
 $authStatus = gh auth status 2>&1
-if ($authStatus -match "You are not logged into any GitHub hosts. To log in, run: gh auth login") {
+if ($authStatus -match "not logged") {
     Write-Host "GitHub CLI is not authenticated. Attempting to log in..."
-    gh auth login -w -p https
-    if ($LASTEXITCODE -ne 0) {
+    # Launch interactive authentication in a separate process (opens your browser)
+    Start-Process -FilePath "gh" -ArgumentList "auth login --web --protocol https" -Wait
+
+    # After login completes, re-check authentication status
+    $authStatus = gh auth status 2>&1
+    if ($authStatus -match "not logged") {
         Write-Error "ERROR: GitHub authentication failed. Please log in manually using 'gh auth login'."
         exit 1
+    } else {
+        Write-Host "GitHub CLI is now authenticated."
     }
 } else {
     Write-Host "GitHub CLI is authenticated."
 }
+
 
 # ------------------------------------------------
 # (4) Clone or Update Repository
