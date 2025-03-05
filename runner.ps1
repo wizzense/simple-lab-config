@@ -108,7 +108,11 @@ try {
     exit 1
 }
 
+# display config
+Write-Host $Config
+
 # Ask user if they want to customize the configuration values.
+
 $customize = Read-Host "Would you like to customize your configuration? (Y/N)"
 if ($customize -match '^(?i)y') {
     $Config = Customize-Config -ConfigObject $Config
