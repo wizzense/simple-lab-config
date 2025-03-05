@@ -1,39 +1,94 @@
 <#
 .SYNOPSIS
   Initialize OpenTofu using Hyper-V settings from config.json.
+
 .DESCRIPTION
-  - Reads the Hyper-V values from the passed-in config.
-  - Generates a main.tf file using these settings.
+  - Reads InfraRepoUrl and InfraRepoPath from the passed-in config.
+  - If InfraRepoUrl is provided, clones/copies .tf files into InfraRepoPath.
+  - Otherwise, generates a main.tf using Hyper-V config.
   - Checks that the tofu command is available, and if not, adds the known installation folder to PATH.
-  - Runs 'tofu init' to initialize OpenTofu in the specified local folder.
+  - Runs 'tofu init' to initialize OpenTofu in InfraRepoPath.
 #>
 
-param(
+Param(
     [Parameter(Mandatory = $true)]
     [PSCustomObject]$Config
 )
 
-Write-Host "---- Hyper-V Configuration Check ----"
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
+Write-Host "---- Hyper-V Configuration Check ----"
 Write-Host "Final Hyper-V configuration:"
 $Config.HyperV | Format-List
 
-# Determine the local infrastructure folder (defaults to "my-infra" if LocalPath is empty)
-$localPath = if ([string]::IsNullOrWhiteSpace($Config.LocalPath)) { "my-infra" } else { $Config.LocalPath }
-$repoPath = Join-Path -Path $PSScriptRoot -ChildPath $localPath
+# --------------------------------------------------
+# 1) Determine infra repo path
+# --------------------------------------------------
+$infraRepoUrl  = $Config.InfraRepoUrl
+$infraRepoPath = $Config.InfraRepoPath
 
-if (-not (Test-Path $repoPath)) {
-    New-Item -ItemType Directory -Path $repoPath -Force | Out-Null
-    Write-Host "Created directory: $repoPath"
-} else {
-    Write-Host "Directory already exists: $repoPath"
+# Fallback if InfraRepoPath is not specified
+if ([string]::IsNullOrWhiteSpace($infraRepoPath)) {
+    $infraRepoPath = Join-Path $PSScriptRoot "my-infra"
 }
 
-# Create (or skip creating) main.tf using the Hyper-V settings from config.json
-$tfFile = Join-Path -Path $repoPath -ChildPath "main.tf"
-if (-not (Test-Path $tfFile)) {
-    Write-Host "Creating main.tf using Hyper-V configuration..."
-    $tfContent = @"
+Write-Host "Using InfraRepoPath: $infraRepoPath"
+
+# Ensure local directory exists
+if (!(Test-Path $infraRepoPath)) {
+    New-Item -ItemType Directory -Path $infraRepoPath -Force | Out-Null
+    Write-Host "Created directory: $infraRepoPath"
+}
+else {
+    Write-Host "Directory already exists: $infraRepoPath"
+}
+
+# --------------------------------------------------
+# 2) If InfraRepoUrl is given, clone/copy .tf files
+# --------------------------------------------------
+if (-not [string]::IsNullOrWhiteSpace($infraRepoUrl)) {
+    Write-Host "InfraRepoUrl detected: $infraRepoUrl"
+
+    # Optionally remove old .tf files if you want a fresh start
+    # Get-ChildItem -Path $infraRepoPath -Filter '*.tf' -Recurse -File | Remove-Item -Force
+
+    # Clone to a temp folder, then copy only .tf files
+    $tempClonePath = Join-Path $env:TEMP ("infraRepoClone_" + [guid]::NewGuid().ToString())
+    if (Test-Path $tempClonePath) {
+        Remove-Item -Recurse -Force $tempClonePath
+    }
+
+    Write-Host "Cloning $infraRepoUrl to temp path $tempClonePath..."
+    git clone $infraRepoUrl $tempClonePath
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "ERROR: Failed to clone $infraRepoUrl"
+        exit 1
+    }
+
+    Write-Host "Copying .tf files from $tempClonePath to $infraRepoPath..."
+    $tfFiles = Get-ChildItem -Path $tempClonePath -Filter '*.tf' -Recurse -File
+    foreach ($file in $tfFiles) {
+        $relativePath = $file.FullName.Substring($tempClonePath.Length).TrimStart('\\','/')
+        $dest = Join-Path $infraRepoPath $relativePath
+        $destDir = Split-Path $dest -Parent
+        if (!(Test-Path $destDir)) {
+            New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+        }
+        Copy-Item -Path $file.FullName -Destination $dest -Force
+    }
+
+    Remove-Item -Recurse -Force $tempClonePath
+    Write-Host "Successfully retrieved .tf files from InfraRepoUrl."
+}
+else {
+    Write-Host "No InfraRepoUrl provided. Using local or default .tf files."
+
+    # If no main.tf found, create one from Hyper-V config
+    $tfFile = Join-Path -Path $infraRepoPath -ChildPath "main.tf"
+    if (-not (Test-Path $tfFile)) {
+        Write-Host "No main.tf found; creating main.tf using Hyper-V configuration..."
+        $tfContent = @"
 terraform {
   required_providers {
     hyperv = {
@@ -59,18 +114,20 @@ provider "hyperv" {
   timeout         = "$($Config.HyperV.Timeout)"
 }
 "@
-    Set-Content -Path $tfFile -Value $tfContent
-    Write-Host "Created main.tf at $tfFile"
-} else {
-    Write-Host "main.tf already exists; not overwriting."
+        Set-Content -Path $tfFile -Value $tfContent
+        Write-Host "Created main.tf at $tfFile"
+    }
+    else {
+        Write-Host "main.tf already exists; not overwriting."
+    }
 }
 
-# --------------------------------------------------------------------------------
-# Check if tofu is in the PATH. If not, add the known installation path.
-# --------------------------------------------------------------------------------
+# --------------------------------------------------
+# 3) Check if tofu is in the PATH. If not, add it.
+# --------------------------------------------------
 $tofuCmd = Get-Command tofu -ErrorAction SilentlyContinue
 if (-not $tofuCmd) {
-    $defaultTofuExe = Join-Path $env:USERPROFILE -ChildPath "AppData\Local\Programs\OpenTofu\tofu.exe"
+    $defaultTofuExe = Join-Path $env:USERPROFILE -ChildPath "AppData\\Local\\Programs\\OpenTofu\\tofu.exe"
     if (Test-Path $defaultTofuExe) {
         Write-Host "Tofu command not found in PATH. Adding its folder to the session PATH..."
         $tofuFolder = Split-Path -Path $defaultTofuExe
@@ -78,23 +135,26 @@ if (-not $tofuCmd) {
         $tofuCmd = Get-Command tofu -ErrorAction SilentlyContinue
         if (-not $tofuCmd) {
             Write-Warning "Even after updating PATH, tofu command is not recognized."
-        } else {
+        }
+        else {
             Write-Host "Tofu command found: $($tofuCmd.Path)"
         }
-    } else {
+    }
+    else {
         Write-Error "Tofu executable not found at $defaultTofuExe. Please install OpenTofu or update your PATH."
         exit 1
     }
 }
 
-# --------------------------------------------------------------------------------
-# Run tofu init in the repository folder
-# --------------------------------------------------------------------------------
-Write-Host "Initializing OpenTofu in $repoPath..."
-Push-Location $repoPath
+# --------------------------------------------------
+# 4) Run tofu init in InfraRepoPath
+# --------------------------------------------------
+Write-Host "Initializing OpenTofu in $infraRepoPath..."
+Push-Location $infraRepoPath
 try {
     tofu init
-} catch {
+}
+catch {
     Write-Error "Failed to run 'tofu init'. Ensure OpenTofu is installed and available in the PATH."
     Pop-Location
     exit 1
@@ -105,11 +165,11 @@ Write-Host "OpenTofu initialized successfully."
 
 Write-Host @"
 NEXT STEPS:
-1. Edit '$tfFile' as needed.
-2. Your plan is in '$repoPath'. Run tofu commands from there.
-3. Run 'tofu plan' to preview changes.
-4. Run 'tofu apply' to provision resources.
+1. Check or edit the .tf files in '$infraRepoPath'.
+2. Run 'tofu plan' to preview changes.
+3. Run 'tofu apply' to provision resources.
 "@
 
-& Set-Location $repoPath
+# Optionally place you in $infraRepoPath at the end
+Set-Location $infraRepoPath
 exit 0
