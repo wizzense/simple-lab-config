@@ -136,6 +136,7 @@ $env:GOPATH = "C:\GoWorkspace"
 # Clone and Build the Provider
 if (!(Test-Path $env:GOPATH\src\github.com\taliesins)) { New-Item -ItemType Directory -Force -Path $targetDir }
 Set-Location $env:GOPATH\src\github.com\taliesins
+if (!(Test-Path $env:GOPATH\src\github.com\taliesins\terraform-provider-hyperv\terraform-provider-hyperv.exe)) { New-Item -ItemType Directory -Force -Path $targetDir }
 git clone https://github.com/taliesins/terraform-provider-hyperv.git
 Set-Location terraform-provider-hyperv
 go build -o terraform-provider-hyperv.exe
