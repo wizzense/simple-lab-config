@@ -110,4 +110,6 @@ NEXT STEPS:
 2. Run 'tofu plan' to preview changes.
 3. Run 'tofu apply' to provision resources.
 "@
+
+Set-Location (Join-Path $PSScriptRoot $repoPath)
 exit 0
