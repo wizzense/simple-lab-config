@@ -169,5 +169,5 @@ NEXT STEPS:
 "@
 
 # Optionally place you in $infraRepoPath at the end
-Set-Location $infraRepoPath
+& Set-Location $infraRepoPath
 exit 0
