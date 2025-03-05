@@ -7,9 +7,9 @@
     "ValidityYears": 5
   },
   "HyperV": {
-    "User": "administrator",
-    "Password": "Tanium1",
-    "Host": "192.168.1.121",
+    "User": "",
+    "Password": "",
+    "Host": "",
     "Port": 5986,
     "Https": true,
     "Insecure": true,

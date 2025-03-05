@@ -49,7 +49,7 @@ $keys = @(
 
 # For each key, if the value is missing or empty, prompt for input
 foreach ($key in $keys) {
-    if (-not $Config.HyperV.PSObject.Properties[$key] -or [string]::IsNullOrWhiteSpace($Config.HyperV.$key.ToString())) {
+    if (-not $Config.HyperV.PSObject.Properties[$key] -or [string]::IsNullOrWhiteSpace($Config.HyperV[$key].ToString())) {
         $inputValue = Read-Host "Enter value for HyperV.${key}:"
         switch ($key) {
             "Port" { $inputValue = [int]$inputValue }
@@ -60,6 +60,7 @@ foreach ($key in $keys) {
         $Config.HyperV | Add-Member -MemberType NoteProperty -Name $key -Value $inputValue -Force
     }
 }
+
 
 Write-Host "Final Hyper-V configuration:"
 $Config.HyperV | Format-List
