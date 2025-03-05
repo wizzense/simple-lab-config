@@ -38,25 +38,36 @@ function ConvertTo-Hashtable {
     }
 }
 
-# Prompt the user for a new value while preserving type.
+# Helper function to format values for display.
+function Format-ValueForDisplay {
+    param (
+        $value
+    )
+    if ($value -is [bool]) {
+        return $value.ToString().ToLower()
+    }
+    elseif ($value -is [array]) {
+        return ($value -join ", ")
+    }
+    else {
+        return $value
+    }
+}
+
+# Prompt the user for a new value while preserving the original type.
 function Prompt-ForValue {
     param (
         [string]$PromptMessage,
         $CurrentValue
     )
-    # Determine the display value without changing type representation.
-    if ($CurrentValue -is [bool]) {
-        $displayVal = if ($CurrentValue) { "true" } else { "false" }
-    }
-    else {
-        $displayVal = $CurrentValue
-    }
+    # Use the helper to display booleans in lowercase.
+    $displayVal = Format-ValueForDisplay $CurrentValue
     $inputVal = Read-Host "$PromptMessage (current: $displayVal) (Press Enter to keep current)"
     if ([string]::IsNullOrEmpty($inputVal)) {
         return $CurrentValue
     }
     else {
-        # Convert to the same type as the current value.
+        # Convert input to the same type as the current value.
         if ($CurrentValue -is [int]) {
             return [int]$inputVal
         }
@@ -89,8 +100,8 @@ function Customize-Config {
         $keys = @($ConfigObject.Keys)
         for ($i = 0; $i -lt $keys.Count; $i++) {
             $key = $keys[$i]
-            # Display the key and its current value.
-            Write-Host "[$i] $key : $($ConfigObject[$key])"
+            $val = Format-ValueForDisplay $ConfigObject[$key]
+            Write-Host "[$i] $key : $val"
         }
         $choice = Read-Host "Enter the number of the config you want to edit (or type 'exit' to finish)"
         if ($choice -match '^(exit|quit)$') {
@@ -101,13 +112,14 @@ function Customize-Config {
             $currentValue = $ConfigObject[$selectedKey]
 
             if ($currentValue -is [hashtable]) {
-                # Let user choose which subkey to modify.
+                # Edit nested keys.
                 while ($true) {
                     Write-Host "`nEditing subkeys of '$selectedKey':"
                     $subkeys = @($currentValue.Keys)
                     for ($j = 0; $j -lt $subkeys.Count; $j++) {
                         $subKey = $subkeys[$j]
-                        Write-Host "   [$j] $subKey : $($currentValue[$subKey])"
+                        $subVal = Format-ValueForDisplay $currentValue[$subKey]
+                        Write-Host "   [$j] $subKey : $subVal"
                     }
                     $subChoice = Read-Host "Enter the number of the subkey to edit (or type 'back' to return)"
                     if ($subChoice -match '^(back|exit|quit)$') {
@@ -125,7 +137,7 @@ function Customize-Config {
                 $ConfigObject[$selectedKey] = $currentValue
             }
             elseif ($currentValue -is [array]) {
-                $listDisplay = $currentValue -join ", "
+                $listDisplay = Format-ValueForDisplay $currentValue
                 $inputVal = Read-Host "Enter comma separated values for '$selectedKey' (current: $listDisplay) (Press Enter to keep current)"
                 if (-not [string]::IsNullOrEmpty($inputVal)) {
                     $ConfigObject[$selectedKey] = $inputVal -split "\s*,\s*"
@@ -142,6 +154,7 @@ function Customize-Config {
     }
     return $ConfigObject
 }
+
 
 
 Write-Host "==== Loading configuration ===="
