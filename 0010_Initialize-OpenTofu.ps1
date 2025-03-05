@@ -15,7 +15,6 @@ param(
 
 Write-Host "---- Hyper-V Configuration Check ----"
 
-
 Write-Host "Final Hyper-V configuration:"
 $Config.HyperV | Format-List
 
@@ -49,9 +48,9 @@ provider "hyperv" {
   password        = "$($Config.HyperV.Password)"
   host            = "$($Config.HyperV.Host)"
   port            = $($Config.HyperV.Port)
-  https           = $($Config.HyperV.Https)
-  insecure        = $($Config.HyperV.Insecure)
-  use_ntlm        = $($Config.HyperV.UseNtlm)
+  https           = $($Config.HyperV.Https.ToString().ToLower())
+  insecure        = $($Config.HyperV.Insecure.ToString().ToLower())
+  use_ntlm        = $($Config.HyperV.UseNtlm.ToString().ToLower())
   tls_server_name = "$($Config.HyperV.TlsServerName)"
   cacert_path     = "$($Config.HyperV.CacertPath)"
   cert_path       = "$($Config.HyperV.CertPath)"
