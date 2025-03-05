@@ -36,5 +36,5 @@
   },
 
   "InfraRepoUrl": "https://github.com/wizzense/tofu-base-lab.git",   
-  "InfraRepoPath": "C:\\Temp\\"
+  "InfraRepoPath": "C:\\Temp\\base-infra"
 }
