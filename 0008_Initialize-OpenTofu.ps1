@@ -6,6 +6,7 @@
   - For any missing or empty Hyper-V property, prompts the user for input.
   - Writes any prompted values back to config.json.
   - Generates a main.tf file using these settings.
+  - Checks that the tofu command is available, and if not, adds the known installation folder to PATH.
   - Runs 'tofu init' to initialize OpenTofu in the specified local folder.
 #>
 
@@ -120,7 +121,32 @@ provider "hyperv" {
     Write-Host "main.tf already exists; not overwriting."
 }
 
+# --------------------------------------------------------------------------------
+# Check if tofu is in the PATH. If not, add the known installation path.
+# --------------------------------------------------------------------------------
+$tofuCmd = Get-Command tofu -ErrorAction SilentlyContinue
+if (-not $tofuCmd) {
+    $defaultTofuExe = "C:\Users\Administrator\AppData\Local\Programs\OpenTofu\tofu.exe"
+    if (Test-Path $defaultTofuExe) {
+        Write-Host "Tofu command not found in PATH. Adding its folder to the session PATH..."
+        $tofuFolder = Split-Path -Path $defaultTofuExe
+        $env:PATH = "$env:PATH;$tofuFolder"
+        # Re-check for tofu command
+        $tofuCmd = Get-Command tofu -ErrorAction SilentlyContinue
+        if (-not $tofuCmd) {
+            Write-Warning "Even after updating PATH, tofu command is not recognized."
+        } else {
+            Write-Host "Tofu command found: $($tofuCmd.Path)"
+        }
+    } else {
+        Write-Error "Tofu executable not found at $defaultTofuExe. Please install OpenTofu or update your PATH."
+        exit 1
+    }
+}
+
+# --------------------------------------------------------------------------------
 # Run tofu init in the repository folder
+# --------------------------------------------------------------------------------
 Write-Host "Initializing OpenTofu in $repoPath..."
 Push-Location $repoPath
 try {
