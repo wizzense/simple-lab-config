@@ -111,5 +111,5 @@ NEXT STEPS:
 3. Run 'tofu apply' to provision resources.
 "@
 
-Set-Location (Join-Path $PSScriptRoot $repoPath)
+Set-Location $repoPath
 exit 0
