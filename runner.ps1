@@ -38,23 +38,39 @@ function ConvertTo-Hashtable {
     }
 }
 
-# Prompt for a new value for a given key, showing the current value.
+# Prompt the user for a new value while preserving type.
 function Prompt-ForValue {
     param (
         [string]$PromptMessage,
         $CurrentValue
     )
-    $inputVal = Read-Host "$PromptMessage (current: $CurrentValue) (Press Enter to keep current)"
+    # Determine the display value without changing type representation.
+    if ($CurrentValue -is [bool]) {
+        $displayVal = if ($CurrentValue) { "true" } else { "false" }
+    }
+    else {
+        $displayVal = $CurrentValue
+    }
+    $inputVal = Read-Host "$PromptMessage (current: $displayVal) (Press Enter to keep current)"
     if ([string]::IsNullOrEmpty($inputVal)) {
         return $CurrentValue
     }
     else {
-        # Convert to the same type as the current value if applicable.
+        # Convert to the same type as the current value.
         if ($CurrentValue -is [int]) {
             return [int]$inputVal
         }
         elseif ($CurrentValue -is [bool]) {
-            return [bool]$inputVal
+            if ($inputVal -match '^(true|t)$') {
+                return $true
+            }
+            elseif ($inputVal -match '^(false|f)$') {
+                return $false
+            }
+            else {
+                Write-Host "Invalid boolean value. Keeping current value."
+                return $CurrentValue
+            }
         }
         else {
             return $inputVal
@@ -62,36 +78,71 @@ function Prompt-ForValue {
     }
 }
 
-# Walk through the config object and prompt for optional customization.
+# Allow the user to choose which config keys to edit by number.
 function Customize-Config {
     param (
         [hashtable]$ConfigObject
     )
-    # Iterate over a static copy of the keys to avoid modification issues.
-    foreach ($key in @($ConfigObject.Keys)) {
-        $value = $ConfigObject[$key]
-        if ($value -is [hashtable]) {
-            Write-Host "`nConfiguring '$key':"
-            foreach ($subKey in @($value.Keys)) {
-                $subValue = $value[$subKey]
-                $newSubValue = Prompt-ForValue -PromptMessage "$key.$subKey" -CurrentValue $subValue
-                $value[$subKey] = $newSubValue
-            }
-            $ConfigObject[$key] = $value
+    while ($true) {
+        Write-Host "`n==== Configuration Customization ===="
+        Write-Host "Current configuration keys:"
+        $keys = @($ConfigObject.Keys)
+        for ($i = 0; $i -lt $keys.Count; $i++) {
+            $key = $keys[$i]
+            # Display the key and its current value.
+            Write-Host "[$i] $key : $($ConfigObject[$key])"
         }
-        elseif ($value -is [array]) {
-            $listDisplay = $value -join ", "
-            $inputVal = Read-Host "Enter comma separated values for '$key' (current: $listDisplay) (Press Enter to keep current)"
-            if (-not [string]::IsNullOrEmpty($inputVal)) {
-                $ConfigObject[$key] = $inputVal -split "\s*,\s*"
+        $choice = Read-Host "Enter the number of the config you want to edit (or type 'exit' to finish)"
+        if ($choice -match '^(exit|quit)$') {
+            break
+        }
+        if ($choice -match '^\d+$' -and [int]$choice -ge 0 -and [int]$choice -lt $keys.Count) {
+            $selectedKey = $keys[[int]$choice]
+            $currentValue = $ConfigObject[$selectedKey]
+
+            if ($currentValue -is [hashtable]) {
+                # Let user choose which subkey to modify.
+                while ($true) {
+                    Write-Host "`nEditing subkeys of '$selectedKey':"
+                    $subkeys = @($currentValue.Keys)
+                    for ($j = 0; $j -lt $subkeys.Count; $j++) {
+                        $subKey = $subkeys[$j]
+                        Write-Host "   [$j] $subKey : $($currentValue[$subKey])"
+                    }
+                    $subChoice = Read-Host "Enter the number of the subkey to edit (or type 'back' to return)"
+                    if ($subChoice -match '^(back|exit|quit)$') {
+                        break
+                    }
+                    if ($subChoice -match '^\d+$' -and [int]$subChoice -ge 0 -and [int]$subChoice -lt $subkeys.Count) {
+                        $selectedSubKey = $subkeys[[int]$subChoice]
+                        $newSubValue = Prompt-ForValue -PromptMessage "$selectedKey.$selectedSubKey" -CurrentValue $currentValue[$selectedSubKey]
+                        $currentValue[$selectedSubKey] = $newSubValue
+                    }
+                    else {
+                        Write-Host "Invalid selection, try again."
+                    }
+                }
+                $ConfigObject[$selectedKey] = $currentValue
+            }
+            elseif ($currentValue -is [array]) {
+                $listDisplay = $currentValue -join ", "
+                $inputVal = Read-Host "Enter comma separated values for '$selectedKey' (current: $listDisplay) (Press Enter to keep current)"
+                if (-not [string]::IsNullOrEmpty($inputVal)) {
+                    $ConfigObject[$selectedKey] = $inputVal -split "\s*,\s*"
+                }
+            }
+            else {
+                $newValue = Prompt-ForValue -PromptMessage "$selectedKey" -CurrentValue $currentValue
+                $ConfigObject[$selectedKey] = $newValue
             }
         }
         else {
-            $ConfigObject[$key] = Prompt-ForValue -PromptMessage "$key" -CurrentValue $value
+            Write-Host "Invalid selection. Please try again."
         }
     }
     return $ConfigObject
 }
+
 
 Write-Host "==== Loading configuration ===="
 if (!(Test-Path $ConfigFile)) {
