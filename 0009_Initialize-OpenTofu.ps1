@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   - Reads InfraRepoUrl and InfraRepoPath from the passed-in config.
-  - If InfraRepoUrl is provided, clones/copies .tf files into InfraRepoPath.
+  - If InfraRepoUrl is provided, it clones the repo directly into InfraRepoPath.
   - Otherwise, generates a main.tf using Hyper-V config.
   - Checks that the tofu command is available, and if not, adds the known installation folder to PATH.
   - Runs 'tofu init' to initialize OpenTofu in InfraRepoPath.
@@ -36,48 +36,38 @@ if ([string]::IsNullOrWhiteSpace($infraRepoPath)) {
 Write-Host "Using InfraRepoPath: $infraRepoPath"
 
 # Ensure local directory exists
-if (!(Test-Path $infraRepoPath)) {
+if (Test-Path $infraRepoPath) {
+    Write-Host "Directory already exists: $infraRepoPath"
+}
+else {
     New-Item -ItemType Directory -Path $infraRepoPath -Force | Out-Null
     Write-Host "Created directory: $infraRepoPath"
 }
-else {
-    Write-Host "Directory already exists: $infraRepoPath"
-}
 
 # --------------------------------------------------
-# 2) If InfraRepoUrl is given, clone/copy .tf files
+# 2) If InfraRepoUrl is given, clone directly to InfraRepoPath
 # --------------------------------------------------
 if (-not [string]::IsNullOrWhiteSpace($infraRepoUrl)) {
     Write-Host "InfraRepoUrl detected: $infraRepoUrl"
 
-    # Clone to a temp folder, then copy only .tf files
-    $tempClonePath = Join-Path $env:TEMP ("infraRepoClone_" + [guid]::NewGuid().ToString())
-    if (Test-Path $tempClonePath) {
-        Remove-Item -Recurse -Force $tempClonePath
+    # If infraRepoPath is already a Git repo, do a pull instead of clone
+    if (Test-Path (Join-Path $infraRepoPath ".git")) {
+        Write-Host "This directory is already a Git repository. Pulling latest changes..."
+        Push-Location $infraRepoPath
+        git pull
+        Pop-Location
     }
+    else {
+        # If you want a clean slate each time, uncomment the lines below to remove existing files
+        # Remove-Item -Path (Join-Path $infraRepoPath "*") -Recurse -Force -ErrorAction SilentlyContinue
 
-    Write-Host "Cloning $infraRepoUrl to temp path $tempClonePath..."
-    git clone $infraRepoUrl $tempClonePath
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "ERROR: Failed to clone $infraRepoUrl"
-        exit 1
-    }
-
-    Write-Host "Copying .tf files from $tempClonePath to $infraRepoPath..."
-    $tfFiles = Get-ChildItem -Path $tempClonePath -Filter '*.tf' -Recurse -File
-    foreach ($file in $tfFiles) {
-        # Instead of TrimStart([char]'\\',[char]'/'), use a regex to remove leading slashes
-        $relativePath = $file.FullName.Substring($tempClonePath.Length) -replace '^[\\/]+',''
-        $dest = Join-Path $infraRepoPath $relativePath
-        $destDir = Split-Path $dest -Parent
-        if (!(Test-Path $destDir)) {
-            New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+        Write-Host "Cloning $infraRepoUrl to $infraRepoPath..."
+        git clone $infraRepoUrl $infraRepoPath
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "ERROR: Failed to clone $infraRepoUrl"
+            exit 1
         }
-        Copy-Item -Path $file.FullName -Destination $dest -Force
     }
-
-    Remove-Item -Recurse -Force $tempClonePath
-    Write-Host "Successfully retrieved .tf files from InfraRepoUrl."
 }
 else {
     Write-Host "No InfraRepoUrl provided. Using local or default .tf files."
@@ -169,5 +159,5 @@ NEXT STEPS:
 "@
 
 # Optionally place you in $infraRepoPath at the end
-& Set-Location $infraRepoPath
+Set-Location $infraRepoPath
 exit 0
