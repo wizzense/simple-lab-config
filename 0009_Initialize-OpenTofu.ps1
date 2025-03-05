@@ -154,8 +154,10 @@ Write-Host "OpenTofu initialized successfully."
 Write-Host @"
 NEXT STEPS:
 1. Check or edit the .tf files in '$infraRepoPath'.
-2. Run 'tofu plan' to preview changes.
-3. Run 'tofu apply' to provision resources.
+2. You may need to modify main.tf to match your Hyper-V configuration.
+ - Set host, user, password, etc. to match your Hyper-V settings.
+3. Run 'tofu plan' to preview changes.
+4. Run 'tofu apply' to provision resources.
 "@
 
 # Optionally place you in $infraRepoPath at the end
