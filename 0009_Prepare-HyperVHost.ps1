@@ -129,32 +129,42 @@ New-NetFirewallRule -DisplayName "Windows Remote Management (HTTP-In)" -Name "Wi
 
 # Build and Install the Provider
 # -------------------------------
-# Set up Go environment
-$env:GOPATH = "C:\GoWorkspace"
-[System.Environment]::SetEnvironmentVariable('GOPATH', $env:GOPATH, 'User')
 
-# Clone and Build the Provider
-$taliesinsDir = "$env:GOPATH\src\github.com\taliesins"
+# Set up Go environment
+$goWorkspace = "C:\GoWorkspace"
+$env:GOPATH = $goWorkspace
+[System.Environment]::SetEnvironmentVariable('GOPATH', $goWorkspace, 'User')
+
+# Define the repository directory for the provider
+$taliesinsDir = Join-Path -Path $env:GOPATH -ChildPath "src\github.com\taliesins"
 if (!(Test-Path $taliesinsDir)) { 
     New-Item -ItemType Directory -Force -Path $taliesinsDir 
 }
 Set-Location $taliesinsDir
 
-$providerExePath = "$taliesinsDir\terraform-provider-hyperv\terraform-provider-hyperv.exe"
+# Define the provider directory and executable path
+$providerDir = Join-Path -Path $taliesinsDir -ChildPath "terraform-provider-hyperv"
+$providerExePath = Join-Path -Path $providerDir -ChildPath "terraform-provider-hyperv.exe"
+
+# Clone the repository if the provider executable does not exist
 if (!(Test-Path $providerExePath)) { 
     git clone https://github.com/taliesins/terraform-provider-hyperv.git 
 }
-Set-Location "terraform-provider-hyperv"
+Set-Location $providerDir
+
+# Build the provider
 go build -o terraform-provider-hyperv.exe
 
-# Define the target directory in your OpenTofu repo
-$targetDir = "C:\users\administrator\documents\ServerSetup\simple-lab-config\my-infra\.terraform\providers\registry.opentofu.org\taliesins\hyperv\1.0.0"
+# Define the target directory in your OpenTofu repo using the user profile variable
+$baseRepoDir = Join-Path -Path $env:USERPROFILE -ChildPath "Documents\ServerSetup\simple-lab-config"
+$targetDir = Join-Path -Path $baseRepoDir -ChildPath "my-infra\.terraform\providers\registry.opentofu.org\taliesins\hyperv\1.0.0"
 if (!(Test-Path $targetDir)) { 
     New-Item -ItemType Directory -Force -Path $targetDir 
 }
 
 # Copy the built provider binary to the target directory
-$sourceBinary = "C:\GoWorkspace\src\github.com\taliesins\terraform-provider-hyperv.exe"
-$destinationBinary = Join-Path $targetDir "terraform-provider-hyperv.exe"
+$sourceBinary = $providerExePath
+$destinationBinary = Join-Path -Path $targetDir -ChildPath "terraform-provider-hyperv.exe"
 Copy-Item -Path $sourceBinary -Destination $destinationBinary -Force -Verbose
+
 
