@@ -109,7 +109,7 @@ try {
 }
 
 # display config
-Write-Host $Config
+Write-Host $ConfigRaw
 
 # Ask user if they want to customize the configuration values.
 
