@@ -111,5 +111,5 @@ NEXT STEPS:
 4. Run 'tofu apply' to provision resources.
 "@
 
-Set-Location $repoPath
+& Set-Location $repoPath
 exit 0

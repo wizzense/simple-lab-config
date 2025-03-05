@@ -1,4 +1,5 @@
 {
+  "InfraRepoURL": "https://github.com/YourUser/YourInfraRepo.git",
   "ComputerName": "core-lab",
   "AllowRemoteDesktop": true,
   "FirewallPorts": [3389, 5985, 5986],
