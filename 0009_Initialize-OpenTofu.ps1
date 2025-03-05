@@ -66,8 +66,8 @@ if (-not [string]::IsNullOrWhiteSpace($infraRepoUrl)) {
     Write-Host "Copying .tf files from $tempClonePath to $infraRepoPath..."
     $tfFiles = Get-ChildItem -Path $tempClonePath -Filter '*.tf' -Recurse -File
     foreach ($file in $tfFiles) {
-        # Use char array for TrimStart so it's not a 2-char string
-        $relativePath = $file.FullName.Substring($tempClonePath.Length).TrimStart([char]'\\',[char]'/')
+        # Instead of TrimStart([char]'\\',[char]'/'), use a regex to remove leading slashes
+        $relativePath = $file.FullName.Substring($tempClonePath.Length) -replace '^[\\/]+',''
         $dest = Join-Path $infraRepoPath $relativePath
         $destDir = Split-Path $dest -Parent
         if (!(Test-Path $destDir)) {
