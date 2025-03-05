@@ -134,8 +134,17 @@ $env:GOPATH = "C:\GoWorkspace"
 [System.Environment]::SetEnvironmentVariable('GOPATH', $env:GOPATH, 'User')
 
 # Clone and Build the Provider
-mkdir -p $env:GOPATH\src\github.com\taliesins
+if (!(Test-Path $env:GOPATH\src\github.com\taliesins)) { New-Item -ItemType Directory -Force -Path $targetDir }
 Set-Location $env:GOPATH\src\github.com\taliesins
 git clone https://github.com/taliesins/terraform-provider-hyperv.git
 Set-Location terraform-provider-hyperv
-make build
+go build -o terraform-provider-hyperv.exe
+
+# Define the target directory in your OpenTofu repo
+$targetDir = "C:\users\administrator\documents\ServerSetup\simple-lab-config\my-infra\.terraform\providers\registry.opentofu.org\taliesins\hyperv\1.0.0"
+if (!(Test-Path $targetDir)) { New-Item -ItemType Directory -Force -Path $targetDir }
+
+# Copy the built provider binary to the target directory
+$sourceBinary = "C:\GoWorkspace\src\github.com\taliesins\terraform-provider-hyperv.exe"
+$destinationBinary = Join-Path $targetDir "terraform-provider-hyperv.exe"
+Copy-Item -Path $sourceBinary -Destination $destinationBinary -Force -Verbose
