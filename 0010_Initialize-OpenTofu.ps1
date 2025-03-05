@@ -106,8 +106,9 @@ Write-Host "OpenTofu initialized successfully."
 Write-Host @"
 NEXT STEPS:
 1. Edit '$tfFile' as needed.
-2. Run 'tofu plan' to preview changes.
-3. Run 'tofu apply' to provision resources.
+2. Your plan is in '$repoPath'. Run tofu commands from there.
+3. Run 'tofu plan' to preview changes.
+4. Run 'tofu apply' to provision resources.
 "@
 
 Set-Location $repoPath
