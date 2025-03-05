@@ -35,6 +35,6 @@
     "InstallerUrl": "https://go.dev/dl/go1.24.1.windows-amd64.msi"
   },
 
-  "InfraRepoUrl": "",   
-  "InfraRepoPath": ""
+  "InfraRepoUrl": "https://github.com/wizzense/tofu-base-lab.git",   
+  "InfraRepoPath": "C:\\Temp\\tofu-base-lab"
 }
