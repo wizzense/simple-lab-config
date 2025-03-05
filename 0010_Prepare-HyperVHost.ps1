@@ -96,7 +96,7 @@ if (!$hostCertificate) {
 # Configure WinRM for HTTPS
 Get-ChildItem wsman:\localhost\Listener\ | Where-Object -Property Keys -eq 'Transport=HTTPS' | Remove-Item -Recurse
 New-Item -Path WSMan:\localhost\Listener -Transport HTTPS -Address * -CertificateThumbPrint $($hostCertificate.Thumbprint) -Force -Verbose
-Restart-Service WinRM -Verbose
+Restart-Service WinRM -Verbose -Force
 
 # Allow HTTPS through Firewall
 New-NetFirewallRule -DisplayName "Windows Remote Management (HTTPS-In)" -Name "WinRMHTTPSIn" -Profile Any -LocalPort 5986 -Protocol TCP -Verbose
@@ -122,7 +122,7 @@ foreach ($PubNet in $PubNets) {
 # Remove and create HTTP listener
 Get-ChildItem wsman:\localhost\Listener\ | Where-Object -Property Keys -eq 'Transport=HTTP' | Remove-Item -Recurse
 New-Item -Path WSMan:\localhost\Listener -Transport HTTP -Address * -Force -Verbose
-Restart-Service WinRM -Verbose
+Restart-Service WinRM -Verbose -Force
 
 # Allow HTTP through Firewall
 New-NetFirewallRule -DisplayName "Windows Remote Management (HTTP-In)" -Name "WinRMHTTPIn" -Profile Any -LocalPort 5985 -Protocol TCP -Verbose

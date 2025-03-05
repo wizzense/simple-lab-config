@@ -1,7 +1,7 @@
 param(
 
     [Parameter(Mandatory=$true)]
-    [PSCustomObject]$Config,
+    [PSCustomObject]$Config
     )
 
 & .\OpenTofuInstaller.ps1 -installMethod standalone -skipVerify

@@ -30,5 +30,8 @@
   "RepoUrl": "https://github.com/wizzense/simple-lab-config.git",
   "LocalPath": "",
   "RunnerScriptName": "runner.ps1",
-  "ConfigFile": ".\\config.json"
+  "ConfigFile": ".\\config.json",
+  "Go": {
+    "InstallerUrl": "https://go.dev/dl/go1.24.1.windows-amd64.msi"
+  }
 }
