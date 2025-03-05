@@ -146,8 +146,8 @@ catch {
         Write-Host "GitHub CLI is now authenticated."
     }
     catch {
-        Write-Error "ERROR: GitHub authentication failed. Please log in manually using 'gh auth login'."
-        exit 1
+        Write-Error "ERROR: GitHub authentication failed. Please log in manually using 'gh auth login'. Then re-run the commands!"
+        exit 
     }
 }
 
