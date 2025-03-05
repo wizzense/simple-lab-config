@@ -163,7 +163,7 @@ foreach ($Script in $ScriptsToRun) {
     Write-Host "`n--- Running: $($Script.Name) ---"
     try {
         # Execute the script and pass the updated config.
-        & .\$($Script.Name) -Config $Config
+        & "$PSScriptRoot\$($Script.Name)" -Config $Config
         if ($LASTEXITCODE -ne 0) {
             Write-Host "ERROR: $($Script.Name) exited with code $LASTEXITCODE."
             exit $LASTEXITCODE
