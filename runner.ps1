@@ -7,31 +7,31 @@ Param(
     [string]$ConfigFile = ".\config.json"
 )
 
-# Function to recursively convert an object to a case‑sensitive dictionary.
-function ConvertTo-CaseSensitiveDictionary {
+# Function to recursively convert an object to a hashtable.
+function ConvertTo-Hashtable {
     param (
         $obj
     )
     if ($obj -is [System.Collections.IDictionary]) {
-        $dict = New-Object 'System.Collections.Generic.Dictionary[string,object]' ([System.StringComparer]::Ordinal)
+        $ht = @{}
         foreach ($key in $obj.Keys) {
-            $dict[$key] = ConvertTo-CaseSensitiveDictionary $obj[$key]
+            $ht[$key] = ConvertTo-Hashtable $obj[$key]
         }
-        return $dict
+        return $ht
     }
     elseif ($obj -is [System.Collections.IEnumerable] -and -not ($obj -is [string])) {
         $arr = @()
         foreach ($item in $obj) {
-            $arr += ConvertTo-CaseSensitiveDictionary $item
+            $arr += ConvertTo-Hashtable $item
         }
         return $arr
     }
     elseif ($obj -is [PSCustomObject]) {
-        $dict = New-Object 'System.Collections.Generic.Dictionary[string,object]' ([System.StringComparer]::Ordinal)
+        $ht = @{}
         foreach ($prop in $obj.PSObject.Properties) {
-            $dict[$prop.Name] = ConvertTo-CaseSensitiveDictionary $prop.Value
+            $ht[$prop.Name] = ConvertTo-Hashtable $prop.Value
         }
-        return $dict
+        return $ht
     }
     else {
         return $obj
@@ -63,14 +63,14 @@ function Prompt-ForValue {
 }
 
 # Walk through the config object and prompt for optional customization.
-# Accepts any IDictionary (hashtable or dictionary).
 function Customize-Config {
     param (
-        [System.Collections.IDictionary]$ConfigObject
+        [hashtable]$ConfigObject
     )
+    # Iterate over a static copy of the keys to avoid modification issues.
     foreach ($key in @($ConfigObject.Keys)) {
         $value = $ConfigObject[$key]
-        if ($value -is [System.Collections.IDictionary]) {
+        if ($value -is [hashtable]) {
             Write-Host "`nConfiguring '$key':"
             foreach ($subKey in @($value.Keys)) {
                 $subValue = $value[$subKey]
@@ -94,7 +94,6 @@ function Customize-Config {
 }
 
 Write-Host "==== Loading configuration ===="
-
 if (!(Test-Path $ConfigFile)) {
     Write-Host "ERROR: Cannot find config file at $ConfigFile"
     exit 1
@@ -102,10 +101,8 @@ if (!(Test-Path $ConfigFile)) {
 
 try {
     $jsonContent = Get-Content -Path $ConfigFile -Raw
-    # Load the raw configuration as a PSCustomObject
     $ConfigRaw = ConvertFrom-Json $jsonContent
-    # Convert to a case-sensitive dictionary to preserve key casing.
-    $Config = ConvertTo-CaseSensitiveDictionary $ConfigRaw
+    $Config = ConvertTo-Hashtable $ConfigRaw
 } catch {
     Write-Host "ERROR: Failed to parse JSON from $ConfigFile. $_"
     exit 1
@@ -117,6 +114,7 @@ $formattedConfig = $ConfigRaw | ConvertTo-Json -Depth 5
 Write-Host $formattedConfig
 
 # Ask user if they want to customize the configuration values.
+
 $customize = Read-Host "Would you like to customize your configuration? (Y/N)"
 if ($customize -match '^(?i)y') {
     $Config = Customize-Config -ConfigObject $Config

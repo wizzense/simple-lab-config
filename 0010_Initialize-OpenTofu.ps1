@@ -10,17 +10,16 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [PSCustomObject]$Config
+    $Config
 )
 
 Write-Host "---- Hyper-V Configuration Check ----"
 
-
 Write-Host "Final Hyper-V configuration:"
-$Config.HyperV | Format-List
+$Config["HyperV"] | Format-List
 
 # Determine the local infrastructure folder (defaults to "my-infra" if LocalPath is empty)
-$localPath = if ([string]::IsNullOrWhiteSpace($Config.LocalPath)) { "my-infra" } else { $Config.LocalPath }
+$localPath = if ([string]::IsNullOrWhiteSpace($Config["LocalPath"])) { "my-infra" } else { $Config["LocalPath"] }
 $repoPath = Join-Path -Path $PSScriptRoot -ChildPath $localPath
 
 if (-not (Test-Path $repoPath)) {
@@ -45,19 +44,19 @@ terraform {
 }
 
 provider "hyperv" {
-  user            = "$($Config.HyperV.User)"
-  password        = "$($Config.HyperV.Password)"
-  host            = "$($Config.HyperV.Host)"
-  port            = $($Config.HyperV.Port)
-  https           = $($Config.HyperV.Https)
-  insecure        = $($Config.HyperV.Insecure)
-  use_ntlm        = $($Config.HyperV.UseNtlm)
-  tls_server_name = "$($Config.HyperV.TlsServerName)"
-  cacert_path     = "$($Config.HyperV.CacertPath)"
-  cert_path       = "$($Config.HyperV.CertPath)"
-  key_path        = "$($Config.HyperV.KeyPath)"
-  script_path     = "$($Config.HyperV.ScriptPath)"
-  timeout         = "$($Config.HyperV.Timeout)"
+  user            = "$($Config["HyperV"]["User"])"
+  password        = "$($Config["HyperV"]["Password"])"
+  host            = "$($Config["HyperV"]["Host"])"
+  port            = $($Config["HyperV"]["Port"])
+  https           = $($Config["HyperV"]["Https"])
+  insecure        = $($Config["HyperV"]["Insecure"])
+  use_ntlm        = $($Config["HyperV"]["UseNtlm"])
+  tls_server_name = "$($Config["HyperV"]["TlsServerName"])"
+  cacert_path     = "$($Config["HyperV"]["CacertPath"])"
+  cert_path       = "$($Config["HyperV"]["CertPath"])"
+  key_path        = "$($Config["HyperV"]["KeyPath"])"
+  script_path     = "$($Config["HyperV"]["ScriptPath"])"
+  timeout         = "$($Config["HyperV"]["Timeout"])"
 }
 "@
     Set-Content -Path $tfFile -Value $tfContent
