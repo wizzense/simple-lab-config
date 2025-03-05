@@ -131,8 +131,9 @@ try {
 catch {
     Write-Host "GitHub CLI is not authenticated. Attempting to log in..."
     try {
-        # Launch interactive login (opens your browser)
-        Start-Process -FilePath "gh" -ArgumentList "auth login --web --protocol https" -Wait -ErrorAction Stop
+    # Use device-flow login so we don't need a browser
+    Start-Process -FilePath "gh" -ArgumentList "auth login --device --hostname github.com --git-protocol https" -Wait -ErrorAction Stop
+
     }
     catch {
         Write-Error "ERROR: Failed to initiate interactive GitHub CLI login."
@@ -149,8 +150,6 @@ catch {
         exit 1
     }
 }
-
-
 
 
 # ------------------------------------------------
