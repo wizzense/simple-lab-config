@@ -50,9 +50,6 @@ else {
 if (-not [string]::IsNullOrWhiteSpace($infraRepoUrl)) {
     Write-Host "InfraRepoUrl detected: $infraRepoUrl"
 
-    # Optionally remove old .tf files if you want a fresh start
-    # Get-ChildItem -Path $infraRepoPath -Filter '*.tf' -Recurse -File | Remove-Item -Force
-
     # Clone to a temp folder, then copy only .tf files
     $tempClonePath = Join-Path $env:TEMP ("infraRepoClone_" + [guid]::NewGuid().ToString())
     if (Test-Path $tempClonePath) {
@@ -69,7 +66,8 @@ if (-not [string]::IsNullOrWhiteSpace($infraRepoUrl)) {
     Write-Host "Copying .tf files from $tempClonePath to $infraRepoPath..."
     $tfFiles = Get-ChildItem -Path $tempClonePath -Filter '*.tf' -Recurse -File
     foreach ($file in $tfFiles) {
-        $relativePath = $file.FullName.Substring($tempClonePath.Length).TrimStart('\\','/')
+        # Use char array for TrimStart so it's not a 2-char string
+        $relativePath = $file.FullName.Substring($tempClonePath.Length).TrimStart([char]'\\',[char]'/')
         $dest = Join-Path $infraRepoPath $relativePath
         $destDir = Split-Path $dest -Parent
         if (!(Test-Path $destDir)) {
