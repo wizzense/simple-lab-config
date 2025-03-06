@@ -13,6 +13,7 @@
   4) Clones a repository from config.json -> RepoUrl to config.json -> LocalPath (or a default path).
   5) Invokes runner.ps1 from that repo.
 #>
+
 $ErrorActionPreference = 'Stop'  # So any error throws an exception
 $ProgressPreference = 'SilentlyContinue'
 
