@@ -1,12 +1,14 @@
-# simple-lab-config
+# opentofu-lab-automation
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/main/config.json' -OutFile '.\config.json'; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/main/kicker-git.ps1' -OutFile '.\kicker-git.ps1'; .\kicker-git.ps1"
 
 Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git
 
-The first time you run this it will download and install Git and Github CLI for you so that it can go ahead and clone the repos needed for the rest of the configuration. It will try to auth to github and likely fail.
+The first time you run this it will download and install Git and Github CLI for you as well as clone the repos needed for the rest of the configuration.
 
-to get opentofu setup, really you only need run: 0005,0007,0008,0009,0010
+I recommend you customize config.json.
+
+To get opentofu setup, really you only need to run: 0005,0007,0008,0009,0010
 
 0000 - 0000_Enable-WinRM.ps1
 0001 - 0001_Enable-RemoteDesktop.ps1
@@ -28,7 +30,7 @@ Make sure to modify the 'main.tf' so it uses your admin credentials and hostname
 provider "hyperv" {
   user            = "ad\\administrator"
   password        = ""
-  host            = ""
+  host            = "192.168.1.121"
   port            = 5986
   https           = true
   insecure        = true  # This skips SSL validation
@@ -41,10 +43,7 @@ provider "hyperv" {
   timeout         = "30s"
 }
 
-###############################################################################
-# Optionally store host/user/password as variables if you want to reference
-# them in the shutdown script. Adjust defaults/values as needed.
-###############################################################################
+
 variable "hyperv_host_name" {
   type    = string
   default = "192.168.1.121"
@@ -57,21 +56,20 @@ variable "hyperv_user" {
 
 variable "hyperv_password" {
   type    = string
-  default = "Tanium1"
+  default = ""
 }
-
 
 You will also have to modify:
 
-###############################################################################
-# hyperv_vhd: Create multiple VHD objects (one per VM) with distinct paths
-###############################################################################
+
+hyperv_vhd: Create multiple VHD objects (one per VM) with distinct paths
+
 resource "hyperv_vhd" "control_node_vhd" {
   count = var.number_of_vms
 
   depends_on = [hyperv_network_switch.Lan]
 
-  # Unique path for each VHD (e.g. ...-0.vhdx, ...-1.vhdx, etc.)
+  Unique path for each VHD (e.g. ...-0.vhdx, ...-1.vhdx, etc.)
   path = "B:\\hyper-v\\PrimaryControlNode\\PrimaryControlNode-Server2025-${count.index}.vhdx"
   size = 60737421312
 }
