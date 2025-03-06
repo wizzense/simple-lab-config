@@ -146,7 +146,7 @@ catch {
         Write-Host "GitHub CLI is now authenticated."
     }
     catch {
-        Write-Error "ERROR: GitHub authentication failed. Please log in manually using '$($ghExePath) auth login'. Then re-run the commands!"
+        Write-Error "ERROR: GitHub authentication failed. Please run '$($ghExePath) auth login'. Then re-run the commands!"
         exit 
     }
 }
