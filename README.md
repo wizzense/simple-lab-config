@@ -2,6 +2,12 @@
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/config.json' -OutFile '.\config.json'; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/kicker.ps1' -OutFile '.\kicker.ps1'; .\kicker.ps1"
 
+Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git
+
+Optionally, you can change the above command to download and run kicker-git.ps1 if you want an automated download, install of git and GitHub CLI and clone this repo.
+
+
+
 The first time you run this it will download and install Git and Github CLI for you so that it can go ahead and clone the repos needed for the rest of the configuration. It will try to auth to github and likely fail.
 
 All you have to do is run: 
