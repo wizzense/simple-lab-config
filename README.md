@@ -1,12 +1,8 @@
 # simple-lab-config
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/config.json' -OutFile '.\config.json'; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/kicker.ps1' -OutFile '.\kicker.ps1'; .\kicker.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/config.json' -OutFile '.\config.json'; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/kicker.ps1' -OutFile '.\kicker-git.ps1'; .\kicker-git.ps1"
 
 Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git
-
-Optionally, you can change the above command to download and run kicker-git.ps1 if you want an automated download, install of git and GitHub CLI and clone this repo.
-
-
 
 The first time you run this it will download and install Git and Github CLI for you so that it can go ahead and clone the repos needed for the rest of the configuration. It will try to auth to github and likely fail.
 
@@ -18,7 +14,10 @@ And it will let you authenticate through the browser or with a Personal Access T
 
 All you have to do then is re-run the commands and it will proceed with the rest of the setup.
 
-Really you only need run: 0005,0007,0008,0009,0010
+Optionally, you can change the above command to download and run kicker.ps1 if you just want to download and run the files without installing git.
+
+
+to get opentofu setup, really you only need run: 0005,0007,0008,0009,0010
 
 0000 - 0000_Enable-WinRM.ps1
 0001 - 0001_Enable-RemoteDesktop.ps1
@@ -34,9 +33,3 @@ Really you only need run: 0005,0007,0008,0009,0010
 To run ALL scripts, type 'all'.
 To run one or more specific scripts, provide comma separated 4-digit prefixes (e.g. 0001,0003).
 Or type 'exit' to quit this script.
-
-Maybe I skip git altogether: 
-Invoke-WebRequest -Uri https://github.com/wizzense/simple-lab-config/archive/refs/heads/main.zip -outfile C:\temp\simple-lab-config.zip -usebasicparsing
-Expand-Archive .\simple-lab-config.zip
-$configFile = "C:\temp\simple-lab-config\simple-lab-config-main\config.json"
-C:\temp\simple-lab-config\simple-lab-config-main\runner.ps1
