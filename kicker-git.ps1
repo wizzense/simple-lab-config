@@ -6,7 +6,10 @@
   2) Checks if command-line Git is installed and in PATH.
      - Installs a minimal version if missing.
      - Updates PATH if installed but not found in PATH.
-  3) Checks if GitHub CLI is installed (optional).
+  3) Checks if GitHub CLI is installed and in PATH.
+     - Installs GitHub CLI if missing.
+     - Updates PATH if installed but not found in PATH.
+     - Prompts for authentication if not already authenticated.
   4) Clones a repository from config.json -> RepoUrl to config.json -> LocalPath (or a default path).
   5) Invokes runner.ps1 from that repo.
 #>
