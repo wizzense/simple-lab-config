@@ -1,6 +1,6 @@
 # simple-lab-config
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/config.json' -OutFile '.\config.json'; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/kicker-git.ps1' -OutFile '.\kicker-git.ps1'; .\kicker-git.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/main/config.json' -OutFile '.\config.json'; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/main/kicker-git.ps1' -OutFile '.\kicker-git.ps1'; .\kicker-git.ps1"
 
 Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git
 
@@ -27,8 +27,8 @@ Make sure to modify the 'main.tf' so it uses your admin credentials and hostname
 
 provider "hyperv" {
   user            = "ad\\administrator"
-  password        = "Tanium1"
-  host            = "192.168.1.121"
+  password        = ""
+  host            = ""
   port            = 5986
   https           = true
   insecure        = true  # This skips SSL validation
