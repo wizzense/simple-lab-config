@@ -55,7 +55,7 @@ variable "hyperv_user" {
 
 variable "hyperv_password" {
   type    = string
-  default = "Tanium1"
+  default = ""
 }
 
 You will also have to modify:
