@@ -1,4 +1,4 @@
-<#
+<# 
 .SYNOPSIS
   Kicker script for a fresh Windows Server Core setup with robust error handling.
 
@@ -61,7 +61,11 @@ if (Test-Path $gitPath) {
     $gitDir = "C:\Program Files\Git\cmd"
     if (Test-Path $gitDir) {
         $env:Path = "$gitDir;$env:Path"
-        [System.Environment]::SetEnvironmentVariable("Path", "$gitDir;$([System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine))", [System.EnvironmentVariableTarget]::Machine)
+        [System.Environment]::SetEnvironmentVariable(
+            "Path",
+            "$gitDir;$([System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine))",
+            [System.EnvironmentVariableTarget]::Machine
+        )
     }
 }
 
@@ -120,37 +124,64 @@ if (!(Get-Command gh -ErrorAction SilentlyContinue)) {
     Write-Host "GitHub CLI is already accessible via the PATH."
 }
 
-
+# ------------------------------------------------
+# (3.5) Check & Prompt for GitHub CLI Authentication
+# ------------------------------------------------
 Write-Host "==== Checking GitHub CLI Authentication ===="
 
 try {
-    # This will throw if not authenticated because $ErrorActionPreference is 'Stop'
+    # If not authenticated, gh auth status typically returns non-zero exit code
+    # With $ErrorActionPreference = 'Stop', that triggers catch
     $authStatus = & gh auth status 2>&1
     Write-Host "GitHub CLI is authenticated."
 }
 catch {
-    Write-Host "GitHub CLI is not authenticated. Attempting to log in..."
-    try {
-    # Use device-flow login so we don't need a browser
-    Start-Process -FilePath "gh" -ArgumentList "auth login --device --hostname github.com --git-protocol https" -Wait -ErrorAction Stop
+    Write-Host "GitHub CLI is not authenticated."
 
-    }
-    catch {
-        Write-Error "ERROR: Failed to initiate interactive GitHub CLI login."
-        exit 1
-    }
+    # Optional: Prompt user for a personal access token
+    $pat = Read-Host "Enter your GitHub Personal Access Token (or press Enter to skip):"
     
-    # After interactive login, recheck authentication
+    if (-not [string]::IsNullOrWhiteSpace($pat)) {
+        # Attempt PAT-based login
+        Write-Host "Attempting PAT-based GitHub CLI login..."
+        try {
+            $pat | & gh auth login --hostname github.com --git-protocol https --with-token
+        }
+        catch {
+            Write-Warning "PAT-based authentication failed. Falling back to device flow."
+            
+            # Attempt device-flow if PAT fails
+            try {
+                & gh auth login --device --hostname github.com --git-protocol https
+            }
+            catch {
+                Write-Error "ERROR: Device flow also failed. $($_.Exception.Message)"
+                exit 1
+            }
+        }
+    }
+    else {
+        # No PAT, attempt device-flow authentication
+        Write-Host "No PAT provided. Attempting device-flow authentication..."
+        try {
+            & gh auth login --device --hostname github.com --git-protocol https
+        }
+        catch {
+            Write-Error "ERROR: Device flow login failed: $($_.Exception.Message)"
+            exit 1
+        }
+    }
+
+    # After the login attempt, re-check auth
     try {
         $authStatus = & gh auth status 2>&1
         Write-Host "GitHub CLI is now authenticated."
     }
     catch {
-        Write-Error "ERROR: GitHub authentication failed. Please run '$($ghExePath) auth login'. Then re-run the commands!"
-        exit 
+        Write-Error "ERROR: GitHub authentication failed. Please run 'gh auth login' manually and re-run."
+        exit 1
     }
 }
-
 
 # ------------------------------------------------
 # (4) Clone or Update Repository
@@ -184,14 +215,12 @@ if (-not $repoPath) {
 # Clone or update the repository
 if (!(Test-Path $repoPath)) {
     Write-Host "Cloning repository from $($config.RepoUrl) to $repoPath..."
-    
-    # Temporarily relax error action to avoid stopping on noncritical errors
+
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     
     gh repo clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
     
-    # Restore the original error action preference
     $ErrorActionPreference = $prevEAP
 
     # Fallback to git if GitHub CLI clone appears to have failed
@@ -210,7 +239,6 @@ if (!(Test-Path $repoPath)) {
     git pull
     Pop-Location
 }
-
 
 # ------------------------------------------------
 # (5) Invoke the Runner Script
