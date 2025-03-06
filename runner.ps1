@@ -1,5 +1,33 @@
-# ... Everything in your script above this point (including Param, 
-# ConvertTo-Hashtable, Customize-Config, etc.) remains the same ...
+
+function ConvertTo-Hashtable {
+    param(
+        $obj
+    )
+    if ($obj -is [System.Collections.IDictionary]) {
+        $ht = @{}
+        foreach ($key in $obj.Keys) {
+            $ht[$key] = ConvertTo-Hashtable $obj[$key]
+        }
+        return $ht
+    }
+    elseif ($obj -is [System.Collections.IEnumerable] -and -not ($obj -is [string])) {
+        $arr = @()
+        foreach ($item in $obj) {
+            $arr += ConvertTo-Hashtable $item
+        }
+        return $arr
+    }
+    elseif ($obj -is [PSCustomObject]) {
+        $ht = @{}
+        foreach ($prop in $obj.PSObject.Properties) {
+            $ht[$prop.Name] = ConvertTo-Hashtable $prop.Value
+        }
+        return $ht
+    }
+    else {
+        return $obj
+    }
+}
 
 Write-Host "==== Loading configuration ===="
 if (!(Test-Path $ConfigFile)) {
