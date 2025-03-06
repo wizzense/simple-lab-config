@@ -17,7 +17,13 @@ Write-Host "Enabling WinRM..."
 Enable-PSRemoting -SkipNetworkProfileCheck -Force
 Set-WSManInstance WinRM/Config/WinRS -ValueSet @{MaxMemoryPerShellMB = 1024}
 Set-WSManInstance WinRM/Config -ValueSet @{MaxTimeoutms=1800000}
-Set-WSManInstance WinRM/Config/Client -ValueSet @{TrustedHosts="*"}
+try {
+    Set-WSManInstance WinRM/Config/Client -ValueSet @{TrustedHosts="*"}
+}
+catch {
+    Write-Host "TrustedHosts is set by policy."
+}
+
 Set-WSManInstance WinRM/Config/Service/Auth -ValueSet @{Negotiate = $true}
 
 # ------------------------------

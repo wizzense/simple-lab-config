@@ -18,10 +18,17 @@ Write-Host "Hyper-V is not installed. Proceeding with installation..."
 $enableMgtTools = $Config.HyperV.EnableManagementTools -eq $true
 $restart = $false  # Change to $true if you want an automatic restart
 
-if ($restart) {
-    Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -Restart -ErrorAction Continue
-} else {
-    Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -ErrorAction Continue
+try {
+
+    if ($restart) {
+        Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -Restart -ErrorAction Continue
+    } else {
+        Install-WindowsFeature -Name "Hyper-V" -IncludeManagementTools:$enableMgtTools -ErrorAction Continue
+    }
 }
+catch {
+    Write-Host "Only works on Windows Server."
+}
+
 
 Write-Host "Hyper-V installation complete. A restart is typically required to finalize installation."
