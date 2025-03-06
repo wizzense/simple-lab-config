@@ -52,6 +52,8 @@ Write-Host "Installing Windows Admin Center..."
 $downloadUrl = "https://aka.ms/wacdownload"
 $installerPath = "$env:TEMP\WindowsAdminCenter.msi"
 
+$ProgressPreference = 'SilentlyContinue'
+
 Write-Host "Downloading WAC from $downloadUrl"
 Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing
 

@@ -36,6 +36,7 @@ if (Get-Command go -ErrorAction SilentlyContinue) {
 Write-Host "Installing Go version $goVersion for architecture $goArch..."
 $installerPath = "$env:TEMP\GoInstaller.msi"
 
+$ProgressPreference = 'SilentlyContinue'
 Write-Host "Downloading Go from $installerUrl"
 Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
 
