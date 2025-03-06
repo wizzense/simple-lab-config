@@ -17,6 +17,7 @@ Param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'  # So any error throws an exception
+$ProgressPreference = 'SilentlyContinue'
 
 # ------------------------------------------------
 # (1) Load Configuration
