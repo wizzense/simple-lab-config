@@ -1,6 +1,8 @@
 # simple-lab-config
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/config.json' -OutFile '.\config.json'; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/kicker.ps1' -OutFile '.\kicker.ps1'; .\kicker.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/config.json' -OutFile '.\config.json'; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/simple-lab-config/refs/heads/main/kicker.ps1' -OutFile '.\kicker-git.ps1'; .\kicker-git.ps1"
+
+Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git
 
 The first time you run this it will download and install Git and Github CLI for you so that it can go ahead and clone the repos needed for the rest of the configuration. It will try to auth to github and likely fail.
 
@@ -12,7 +14,10 @@ And it will let you authenticate through the browser or with a Personal Access T
 
 All you have to do then is re-run the commands and it will proceed with the rest of the setup.
 
-Really you only need run: 0005,0007,0008,0009,0010
+Optionally, you can change the above command to download and run kicker.ps1 if you just want to download and run the files without installing git.
+
+
+to get opentofu setup, really you only need run: 0005,0007,0008,0009,0010
 
 0000 - 0000_Enable-WinRM.ps1
 0001 - 0001_Enable-RemoteDesktop.ps1
