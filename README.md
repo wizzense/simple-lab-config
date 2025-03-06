@@ -4,10 +4,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -U
 
 Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git
 
-The first time you run this it will download and install Git and Github CLI for you so that it can go ahead and clone the repos needed for the rest of the configuration. It will try to auth to github and likely fail.
+The first time you run this it will download and install Git and Github CLI for you as well as clone the repos needed for the rest of the configuration.
+
 I recommend you customize config.json.
 
-To get opentofu setup, really you only need run: 0005,0007,0008,0009,0010
+To get opentofu setup, really you only need to run: 0005,0007,0008,0009,0010
 
 0000 - 0000_Enable-WinRM.ps1
 0001 - 0001_Enable-RemoteDesktop.ps1
@@ -28,7 +29,7 @@ Make sure to modify the 'main.tf' so it uses your admin credentials and hostname
 
 provider "hyperv" {
   user            = "ad\\administrator"
-  password        = "Tanium1"
+  password        = ""
   host            = "192.168.1.121"
   port            = 5986
   https           = true
