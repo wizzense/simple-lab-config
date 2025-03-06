@@ -68,7 +68,7 @@ resource "hyperv_vhd" "control_node_vhd" {
 
   depends_on = [hyperv_network_switch.Lan]
 
-  # Unique path for each VHD (e.g. ...-0.vhdx, ...-1.vhdx, etc.)
+  Unique path for each VHD (e.g. ...-0.vhdx, ...-1.vhdx, etc.)
   path = "B:\\hyper-v\\PrimaryControlNode\\PrimaryControlNode-Server2025-${count.index}.vhdx"
   size = 60737421312
 }
