@@ -42,10 +42,7 @@ provider "hyperv" {
   timeout         = "30s"
 }
 
-###############################################################################
-# Optionally store host/user/password as variables if you want to reference
-# them in the shutdown script. Adjust defaults/values as needed.
-###############################################################################
+
 variable "hyperv_host_name" {
   type    = string
   default = "192.168.1.121"
@@ -63,9 +60,9 @@ variable "hyperv_password" {
 
 You will also have to modify:
 
-###############################################################################
-# hyperv_vhd: Create multiple VHD objects (one per VM) with distinct paths
-###############################################################################
+
+hyperv_vhd: Create multiple VHD objects (one per VM) with distinct paths
+
 resource "hyperv_vhd" "control_node_vhd" {
   count = var.number_of_vms
 
