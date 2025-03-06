@@ -28,3 +28,9 @@ Really you only need run: 0005,0007,0008,0009,0010
 To run ALL scripts, type 'all'.
 To run one or more specific scripts, provide comma separated 4-digit prefixes (e.g. 0001,0003).
 Or type 'exit' to quit this script.
+
+Maybe I skip git altogether: 
+Invoke-WebRequest -Uri https://github.com/wizzense/simple-lab-config/archive/refs/heads/main.zip -outfile C:\temp\simple-lab-config.zip -usebasicparsing
+Expand-Archive .\simple-lab-config.zip
+$configFile = "C:\temp\simple-lab-config\simple-lab-config-main\config.json"
+C:\temp\simple-lab-config\simple-lab-config-main\runner.ps1
