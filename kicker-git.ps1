@@ -60,40 +60,24 @@ if (Test-Path $gitPath) {
 
     Remove-Item -Path $gitInstallerPath -ErrorAction SilentlyContinue
     Write-Host "Git installation completed."
-
-    # Ensure Git is in PATH
-    $gitDir = "C:\Program Files\Git\cmd"
-    if (Test-Path $gitDir) {
-        $env:Path = "$gitDir;$env:Path"
-        [System.Environment]::SetEnvironmentVariable(
-            "Path",
-            "$gitDir;$([System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine))",
-            [System.EnvironmentVariableTarget]::Machine
-        )
-    }
 }
 
-# **Force refresh of environment variables**
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-
-# **Final Git check**
-$gitVersion = git --version 2>$null
-if ($gitVersion) {
-    Write-Host "Git is installed and working: $gitVersion"
-} else {
+# Double-check Git
+try {
+    & "$gitPath" --version | Write-Host
+    Write-Host "Git is installed and working."
+} catch {
     Write-Error "ERROR: Git installation failed or is not accessible. Exiting."
     exit 1
 }
 
 # ------------------------------------------------
-# (3) Check GitHub CLI
+# (3) Check GitHub CLI and always call by explicit path
 # ------------------------------------------------
 Write-Host "==== Checking if GitHub CLI is installed ===="
 $ghExePath = "C:\Program Files\GitHub CLI\gh.exe"
-if (Test-Path $ghExePath) {
-    Write-Host "GitHub CLI found at $ghExePath. Adding to PATH."
-    $env:Path = "C:\Program Files\GitHub CLI;$env:Path"
-} else {
+
+if (!(Test-Path $ghExePath)) {
     Write-Host "GitHub CLI not found. Downloading from $($config.GitHubCLIInstallerUrl)..."
     $ghCliInstaller = Join-Path -Path $env:TEMP -ChildPath "GitHubCLIInstaller.msi"
     Invoke-WebRequest -Uri $config.GitHubCLIInstallerUrl -OutFile $ghCliInstaller -UseBasicParsing
@@ -103,40 +87,23 @@ if (Test-Path $ghExePath) {
     Remove-Item -Path $ghCliInstaller -ErrorAction SilentlyContinue
 
     Write-Host "GitHub CLI installation completed."
+} else {
+    Write-Host "GitHub CLI found at '$ghExePath'."
 }
 
-if (!(Get-Command gh -ErrorAction SilentlyContinue)) {
-    $ghExe = "C:\Program Files\GitHub CLI\gh.exe"
-    if (Test-Path $ghExe) {
-        # Get the current machine PATH
-        $currentMachinePath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine)
-        
-        # Check if the GitHub CLI path is already included
-        if ($currentMachinePath -notmatch [regex]::Escape("C:\Program Files\GitHub CLI")) {
-            # Prepend GitHub CLI to the machine PATH
-            $newMachinePath = "C:\Program Files\GitHub CLI;" + $currentMachinePath
-            [System.Environment]::SetEnvironmentVariable("Path", $newMachinePath, [System.EnvironmentVariableTarget]::Machine)
-            Write-Host "Added GitHub CLI to the system PATH. Please restart your session or computer for changes to take effect."
-        } else {
-            Write-Host "GitHub CLI is already in the system PATH."
-        }
-    }
-    else {
-        Write-Error "gh.exe not found at '$ghExe'"
-    }
-} else {
-    Write-Host "GitHub CLI is already accessible via the PATH."
+if (!(Test-Path $ghExePath)) {
+    Write-Error "gh.exe not found at '$ghExePath'. Installation may have failed."
+    exit 1
 }
 
 # ------------------------------------------------
-# (3.5) Check & Prompt for GitHub CLI Authentication
+# (3.5) Check & Prompt for GitHub CLI Authentication using explicit path
 # ------------------------------------------------
 Write-Host "==== Checking GitHub CLI Authentication ===="
-
 try {
     # If not authenticated, gh auth status typically returns non-zero exit code
-    # With $ErrorActionPreference = 'Stop', that triggers catch
-    $authStatus = & gh auth status 2>&1
+    # so $ErrorActionPreference = 'Stop' triggers the catch
+    & "$ghExePath" auth status 2>&1
     Write-Host "GitHub CLI is authenticated."
 }
 catch {
@@ -144,19 +111,17 @@ catch {
 
     # Optional: Prompt user for a personal access token
     $pat = Read-Host "Enter your GitHub Personal Access Token (or press Enter to skip):"
-    
+
     if (-not [string]::IsNullOrWhiteSpace($pat)) {
         # Attempt PAT-based login
         Write-Host "Attempting PAT-based GitHub CLI login..."
         try {
-            $pat | & gh auth login --hostname github.com --git-protocol https --with-token
+            $pat | & "$ghExePath" auth login --hostname github.com --git-protocol https --with-token
         }
         catch {
             Write-Warning "PAT-based authentication failed. Falling back to device flow."
-            
-            # Attempt device-flow if PAT fails
             try {
-                & gh auth login --device --hostname github.com --git-protocol https
+                & "$ghExePath" auth login --device --hostname github.com --git-protocol https
             }
             catch {
                 Write-Error "ERROR: Device flow also failed. $($_.Exception.Message)"
@@ -168,7 +133,7 @@ catch {
         # No PAT, attempt device-flow authentication
         Write-Host "No PAT provided. Attempting device-flow authentication..."
         try {
-            & gh auth login --device --hostname github.com --git-protocol https
+            & "$ghExePath" auth login --device --hostname github.com --git-protocol https
         }
         catch {
             Write-Error "ERROR: Device flow login failed: $($_.Exception.Message)"
@@ -178,17 +143,17 @@ catch {
 
     # After the login attempt, re-check auth
     try {
-        $authStatus = & gh auth status 2>&1
+        & "$ghExePath" auth status 2>&1
         Write-Host "GitHub CLI is now authenticated."
     }
     catch {
-        Write-Error "ERROR: GitHub authentication failed. Please run 'gh auth login' manually and re-run."
+        Write-Error "ERROR: GitHub authentication failed. Please run '$ghExePath auth login' manually and re-run."
         exit 1
     }
 }
 
 # ------------------------------------------------
-# (4) Clone or Update Repository
+# (4) Clone or Update Repository (using explicit Git/gh)
 # ------------------------------------------------
 Write-Host "==== Cloning or updating the target repository ===="
 
@@ -207,7 +172,7 @@ if (!(Test-Path $localPath)) {
     New-Item -ItemType Directory -Path $localPath -Force | Out-Null
 }
 
-# Define repo path and ensure it's set
+# Define repo path
 $repoName = ($config.RepoUrl -split '/')[-1] -replace "\.git$", ""
 $repoPath = Join-Path $localPath $repoName
 
@@ -223,14 +188,14 @@ if (!(Test-Path $repoPath)) {
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     
-    gh repo clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
+    & "$ghExePath" repo clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
     
     $ErrorActionPreference = $prevEAP
 
     # Fallback to git if GitHub CLI clone appears to have failed
     if (!(Test-Path $repoPath)) {
         Write-Host "GitHub CLI clone failed. Trying git clone..."
-        git clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\git_clone_log.txt"
+        & "$gitPath" clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\git_clone_log.txt"
 
         if (!(Test-Path $repoPath)) {
             Write-Error "ERROR: Repository cloning failed. Check logs: $env:TEMP\gh_clone_log.txt and $env:TEMP\git_clone_log.txt"
@@ -240,7 +205,7 @@ if (!(Test-Path $repoPath)) {
 } else {
     Write-Host "Repository already exists. Pulling latest changes..."
     Push-Location $repoPath
-    git pull
+    & "$gitPath" pull
     Pop-Location
 }
 
