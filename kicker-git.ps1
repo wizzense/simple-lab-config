@@ -45,7 +45,6 @@ try {
 Write-Host "==== Checking if Git is installed ===="
 $gitPath = "C:\Program Files\Git\cmd\git.exe"
 
-# First, check if Git is already installed
 if (Test-Path $gitPath) {
     Write-Host "Git is already installed at: $gitPath"
 } else {
@@ -72,7 +71,7 @@ try {
 }
 
 # ------------------------------------------------
-# (3) Check GitHub CLI and always call by explicit path
+# (3) Check GitHub CLI and call by explicit path
 # ------------------------------------------------
 Write-Host "==== Checking if GitHub CLI is installed ===="
 $ghExePath = "C:\Program Files\GitHub CLI\gh.exe"
@@ -92,17 +91,16 @@ if (!(Test-Path $ghExePath)) {
 }
 
 if (!(Test-Path $ghExePath)) {
-    Write-Error "gh.exe not found at '$ghExePath'. Installation may have failed."
+    Write-Error "ERROR: gh.exe not found at '$ghExePath'. Installation may have failed."
     exit 1
 }
 
 # ------------------------------------------------
-# (3.5) Check & Prompt for GitHub CLI Authentication using explicit path
+# (3.5) Check & Prompt for GitHub CLI Authentication
 # ------------------------------------------------
 Write-Host "==== Checking GitHub CLI Authentication ===="
 try {
-    # If not authenticated, gh auth status typically returns non-zero exit code
-    # so $ErrorActionPreference = 'Stop' triggers the catch
+    # If not authenticated, 'gh auth status' returns non-zero exit code
     & "$ghExePath" auth status 2>&1
     Write-Host "GitHub CLI is authenticated."
 }
@@ -113,30 +111,23 @@ catch {
     $pat = Read-Host "Enter your GitHub Personal Access Token (or press Enter to skip):"
 
     if (-not [string]::IsNullOrWhiteSpace($pat)) {
-        # Attempt PAT-based login
         Write-Host "Attempting PAT-based GitHub CLI login..."
         try {
             $pat | & "$ghExePath" auth login --hostname github.com --git-protocol https --with-token
         }
         catch {
-            Write-Warning "PAT-based authentication failed. Falling back to device flow."
-            try {
-                & "$ghExePath" auth login --device --hostname github.com --git-protocol https
-            }
-            catch {
-                Write-Error "ERROR: Device flow also failed. $($_.Exception.Message)"
-                exit 1
-            }
+            Write-Error "ERROR: PAT-based login failed. Please verify your token or try interactive login."
+            exit 1
         }
     }
     else {
-        # No PAT, attempt device-flow authentication
-        Write-Host "No PAT provided. Attempting device-flow authentication..."
+        # No PAT, attempt normal interactive login in the console
+        Write-Host "No PAT provided. Attempting interactive login..."
         try {
-            & "$ghExePath" auth login --device --hostname github.com --git-protocol https
+            & "$ghExePath" auth login --hostname github.com --git-protocol https
         }
         catch {
-            Write-Error "ERROR: Device flow login failed: $($_.Exception.Message)"
+            Write-Error "ERROR: Interactive login failed: $($_.Exception.Message)"
             exit 1
         }
     }
@@ -157,7 +148,6 @@ catch {
 # ------------------------------------------------
 Write-Host "==== Cloning or updating the target repository ===="
 
-# Ensure config.json contains required values
 if (-not $config.RepoUrl) {
     Write-Error "ERROR: config.json does not specify 'RepoUrl'."
     exit 1
@@ -181,18 +171,17 @@ if (-not $repoPath) {
     exit 1
 }
 
-# Clone or update the repository
 if (!(Test-Path $repoPath)) {
     Write-Host "Cloning repository from $($config.RepoUrl) to $repoPath..."
 
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    
+
     & "$ghExePath" repo clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
-    
+
     $ErrorActionPreference = $prevEAP
 
-    # Fallback to git if GitHub CLI clone appears to have failed
+    # Fallback to git if the GitHub CLI clone appears to have failed
     if (!(Test-Path $repoPath)) {
         Write-Host "GitHub CLI clone failed. Trying git clone..."
         & "$gitPath" clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\git_clone_log.txt"
