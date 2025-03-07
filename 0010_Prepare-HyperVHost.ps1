@@ -201,17 +201,17 @@ Copy-Item -Path $providerExePath -Destination $destinationBinary -Force -Verbose
 Write-Host "Hyper-V provider installed at: $destinationBinary"
 
 # ------------------------------
-# 5) Update Provider Config File (main.tf)
+# 5) Update Provider Config File (providers.tf)
 # ------------------------------
 
 $tfFile = Join-Path -Path $infraRepoPath -ChildPath "providers.tf"
 if (Test-Path $tfFile) {
     Write-Host "Updating providers configuration in providers.tf with certificate paths..."
 
-    # Get absolute paths for the certificate files
-    $rootCAPath  = (Resolve-Path ".\$rootCaName.cer").Path
-    $hostCertPath = (Resolve-Path ".\$hostName.cer").Path
-    $hostKeyPath  = (Resolve-Path ".\$hostName.pfx").Path
+    # Get absolute paths for the certificate files using $infraRepoPath
+    $rootCAPath  = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$rootCaName.cer")).Path
+    $hostCertPath = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$hostName.cer")).Path
+    $hostKeyPath  = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$hostName.pfx")).Path
 
     # Read the file as a single string
     $content = Get-Content $tfFile -Raw
@@ -231,6 +231,7 @@ if (Test-Path $tfFile) {
 else {
     Write-Host "providers.tf not found in $infraRepoPath; skipping provider config update."
 }
+
 
     Write-Host @"
 Done preparing Hyper-V host and installing the provider.
