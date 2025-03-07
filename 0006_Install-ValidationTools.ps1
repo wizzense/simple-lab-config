@@ -5,7 +5,7 @@ Param(
 
 function Install-Cosign {
     # Check if cosign is available in the current PATH
-    if (-not (Get-Command cosign -ErrorAction SilentlyContinue)) {
+    if (-not (Test-Path (Join-Path $Config.CosignPath "cosign-windows-amd64.exe") -ErrorAction SilentlyContinue)) {
         Write-Host "Cosign is not found. Installing cosign..."
         
         # Define the installation directory and destination file path
