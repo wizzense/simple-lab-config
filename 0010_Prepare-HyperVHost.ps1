@@ -219,11 +219,11 @@ if (Test-Path $tfFile) {
     # Update insecure to false
     $content = $content -replace '(insecure\s*=\s*)(true|false)', '${1}false'
     # Update tls_server_name to match the host name
-    $content = $content -replace '(tls_server_name\s*=\s*")[^"]*"', '${1}' + $hostName + '"'
+    $content = $content -replace '(tls_server_name\s*=\s*")[^"]*"', ( '${1}' + $hostName + '"' )
     # Update certificate file paths
-    $content = $content -replace '(cacert_path\s*=\s*")[^"]*"', '${1}' + $rootCAPath + '"'
-    $content = $content -replace '(cert_path\s*=\s*")[^"]*"', '${1}' + $hostCertPath + '"'
-    $content = $content -replace '(key_path\s*=\s*")[^"]*"', '${1}' + $hostKeyPath + '"'
+    $content = $content -replace '(cacert_path\s*=\s*")[^"]*"', ( '${1}' + $rootCAPath + '"' )
+    $content = $content -replace '(cert_path\s*=\s*")[^"]*"', ( '${1}' + $hostCertPath + '"' )
+    $content = $content -replace '(key_path\s*=\s*")[^"]*"', ( '${1}' + $hostKeyPath + '"' )
 
     Set-Content -Path $tfFile -Value $content
     Write-Host "Updated providers.tf successfully."
