@@ -38,7 +38,7 @@ $rootCaPassword = $UserInput
 #$rootCaPassword   = ConvertTo-SecureString $UserInput -AsPlainText -Force
 $rootCaCertificate = Get-ChildItem cert:\LocalMachine\Root | Where-Object {$_.Subject -eq "CN=$rootCaName"}
 
-if (!$rootCaCertificate) {
+if ($rootCaCertificate) {
     # Cleanup if present
     Get-ChildItem cert:\LocalMachine\My | Where-Object {$_.subject -eq "CN=$rootCaName"} | Remove-Item -Force -ErrorAction SilentlyContinue
     Remove-Item ".\$rootCaName.cer" -Force -ErrorAction SilentlyContinue
@@ -82,6 +82,8 @@ $hostPassword = $UserInput
 $hostCertificate = Get-ChildItem cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$hostName"}
 
 if ($hostCertificate) {
+    # Cleanup if present
+    Get-ChildItem cert:\LocalMachine\My | Where-Object {$_.subject -eq "CN=$hostName"} | Remove-Item -Force -ErrorAction SilentlyContinue
     Remove-Item ".\$hostName.cer" -Force -ErrorAction SilentlyContinue
     Remove-Item ".\$hostName.pfx" -Force -ErrorAction SilentlyContinue
 
