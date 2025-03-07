@@ -18,7 +18,7 @@ $ErrorActionPreference = 'Stop'  # So any error throws an exception
 $ProgressPreference = 'SilentlyContinue'
 
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/config-demo.json' -OutFile '.\config-demo.json'
-$ConfigFile = (Join-Path $PSScriptRoot "config.json")
+$ConfigFile = (Join-Path $PSScriptRoot "config-demo.json")
 
 # ------------------------------------------------
 # (1) Load Configuration
