@@ -26,24 +26,43 @@ To get opentofu setup, really you only need to specify these when prompted: 0006
 The runner script can run the following: 
 
 0000_Cleanup-Files.ps1 - Removed lab-infra opentofu infrastructure repo
+
 0001_Reset-Git.ps1 - resets lab-infra opentofu infrastructure repo in case you modify any files and just want to re-pull the files/ reset
+
 0006_Install-ValidationTools.ps1 - downloads the  cosign exe to C:\temo\cosign
+
 0007_Install-Go.ps1 - downloads and installs Go
+
 0008_Install-OpenTofu.ps1 - Downloads and installs opentofu standalone (verified with cosign)
+
 0009_Initialize-OpenTofu.ps1 - setups up opentofu and the lab-infra repo in C:\temp\base-infra
+
 0010_Prepare-HyperVHost.ps1 - runs a lot of configuration to prep a hyper-v host to be used as a provider 
+
 - Enables hyper-v if not enabled
+- 
 - enables WinRM if not enabled
+- 
   - WinRS MaxMemoryPerShellMB to 1024
+    
   - WinRM MaxTimeoutms to 1800000
+    
   - TrustedHosts to '*'
+    
   - Negotiate to True
+    
 - creates a self-signed RootCA Cert (prompts for password)
+  
 - creates self-signed host certificate (prompts for password)
+  
 - Configured WinRM HTTPs Listener
+  
 - Allows HTTP 5986 through firewall
+  
 - Creates a Go workspace in C:\GoWorkspace
+  
   - Builds the hyperv-provider for opentofu from tailiesins git
+    
   - Copies the provider to the lab-infra
  
 - Note, certificate validation for the hyperv provider is currently disabled by default, I am still working out to get it to use the certificates. I think they have to be converted to .pem first.
