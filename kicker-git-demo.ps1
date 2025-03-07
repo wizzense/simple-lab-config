@@ -215,13 +215,13 @@ if (-not $runnerScriptName) {
     exit 0
 }
 
-Set-Location (Join-Path $repoPath "dev")
+Set-Location $repoPath
 if (!(Test-Path $runnerScriptName)) {
     Write-Error "ERROR: Could not find $runnerScriptName in $repoPath. Exiting."
     exit 1
 }
 
-Write-Host "Running $runnerScriptName from $(Join-Path $repoPath 'dev') ..."
+Write-Host "Running $runnerScriptName from $repoPath ..."
 . .\$runnerScriptName #-AutoAccept -RunScripts all
 
 Write-Host "`n=== Kicker script finished successfully! ==="
