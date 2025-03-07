@@ -251,6 +251,8 @@ Write-Host "Hyper-V provider installed at: $destinationBinary"
 # ------------------------------
 # 5) Update Provider Config File (providers.tf)
 # ------------------------------
+<#
+I am disabling this for now because opentofu doesn't like the certs :(
 
 $tfFile = Join-Path -Path $infraRepoPath -ChildPath "providers.tf"
 if (Test-Path $tfFile) {
@@ -284,7 +286,7 @@ if (Test-Path $tfFile) {
 else {
     Write-Host "providers.tf not found in $infraRepoPath; skipping provider config update."
 }
-
+#>
     Write-Host @"
 Done preparing Hyper-V host and installing the provider.
 You can now run 'tofu plan'/'tofu apply' in $infraRepoPath.
