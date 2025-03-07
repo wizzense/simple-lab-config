@@ -2,26 +2,25 @@
 
   DEMO Kicker script for a fresh Windows Server Core setup
 
-  1) Loads config.json from the same folder by default (override with -ConfigFile).
-  2) Checks if command-line Git is installed and in PATH.
-     - Installs a minimal version if missing.
+  1) Downloads and loads config-demo.json from the same folder by default (override with -ConfigFile).
+  2) Checks if command-line Git is installed and in PATH. (requirement)
+     - Prompts to install a minimal version if missing.
      - Updates PATH if installed but not found in PATH.
-  3) Checks if GitHub CLI is installed and in PATH.
-     - Installs GitHub CLI if missing.
+  3) Checks if GitHub CLI is installed and in PATH. (requirement)
+     - Prompts to installs GitHub CLI if missing.
      - Updates PATH if installed but not found in PATH.
      - Prompts for authentication if not already authenticated.
-  4) Clones a repository from config.json -> RepoUrl to config.json -> LocalPath (or a default path).
-  5) Invokes runner.ps1 from that repo.
+  4) Clones this repository from config.json -> RepoUrl to config.json -> LocalPath (or a default path).
+  5) Invokes runner.ps1 from this repo. Runner can be ran with optional parameters to automatically run, but it will prompt you to manually select which scripts to run by default.
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/kicker-git-demo.ps1' -OutFile '.\kicker-git-demo.ps1'; .\kicker-git-demo.ps1"
+```
+powershell.exe -NoProfile -ExecutionPolicy Byp ass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/kicker-git-demo.ps1' -OutFile '.\kicker-git-demo.ps1'; .\kicker-git-demo.ps1"
+```
+It will prompt print the current config and prompt you to customize it interactively. 
 
 Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git
 
-The first time you run this it will download and install Git and Github CLI for you as well as clone the repos needed for the rest of the configuration.
-
-I recommend you customize config.json.
-
-To get opentofu setup, really you only need to specify these when prompted: 0006,0007,0008,0009,0010
+To get opentofu setup, really you only need to specify these when runner.ps1 is called: 0006,0007,0008,0009,0010
 
 The runner script can run the following: 
 
