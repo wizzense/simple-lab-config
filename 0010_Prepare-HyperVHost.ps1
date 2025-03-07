@@ -32,8 +32,10 @@ Set-WSManInstance WinRM/Config/Service/Auth -ValueSet @{Negotiate = $true}
 # 2) Configure WinRM HTTPS
 # ------------------------------
 
-$rootCaName       = "DevRootCA"
-$rootCaPassword   = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
+$rootCaName = $config.CertificateAuthority.CommonName
+$UserInput = Read-Host -Prompt "Enter the password for the Root CA certificate" -AsSecureString
+$rootCaPassword = $UserInput
+#$rootCaPassword   = ConvertTo-SecureString $UserInput -AsPlainText -Force
 $rootCaCertificate = Get-ChildItem cert:\LocalMachine\Root | Where-Object {$_.Subject -eq "CN=$rootCaName"}
 
 if (!$rootCaCertificate) {
@@ -58,7 +60,7 @@ if (!$rootCaCertificate) {
         NotAfter          = (Get-Date).AddYears(5)
     }
 
-    Write-Host "Creating DevRootCA..."
+    Write-Host "Creating Root CA..."
     $rootCaCertificate = New-SelfSignedCertificate @params
 
     Export-Certificate -Cert $rootCaCertificate -FilePath ".\$rootCaName.cer" -Verbose
@@ -74,7 +76,9 @@ if (!$rootCaCertificate) {
 
 # Create Host Certificate
 $hostName      = [System.Net.Dns]::GetHostName()
-$hostPassword  = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
+$UserInput = Read-Host -Prompt "Enter the password for the host." -AsSecureString
+$hostPassword = $UserInput
+#$hostPassword  = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
 $hostCertificate = Get-ChildItem cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$hostName"}
 
 if (!$hostCertificate) {
@@ -123,6 +127,7 @@ New-NetFirewallRule -DisplayName "Windows Remote Management (HTTPS-In)" -Name "W
 # ------------------------------
 # 3) Configure WinRM HTTP (optional)
 # ------------------------------
+<#
 $PubNets = Get-NetConnectionProfile -NetworkCategory Public -ErrorAction SilentlyContinue
 foreach ($PubNet in $PubNets) {
     Set-NetConnectionProfile -InterfaceIndex $PubNet.InterfaceIndex -NetworkCategory Private
@@ -140,6 +145,7 @@ Restart-Service WinRM -Verbose -Force
 
 Write-Host "Allowing HTTP (5985) through firewall..."
 New-NetFirewallRule -DisplayName "Windows Remote Management (HTTP-In)" -Name "WinRMHTTPIn" -Profile Any -LocalPort 5985 -Protocol TCP -Verbose
+#>
 
 # ------------------------------
 # 4) Build & Install Hyper-V Provider in InfraRepoPath
@@ -192,9 +198,40 @@ Copy-Item -Path $providerExePath -Destination $destinationBinary -Force -Verbose
 
 Write-Host "Hyper-V provider installed at: $destinationBinary"
 
-Write-Host @"
+# ------------------------------
+# 5) Update Provider Config File (main.tf)
+# ------------------------------
+
+$tfFile = Join-Path -Path $infraRepoPath -ChildPath "provider.tf"
+if (Test-Path $tfFile) {
+    Write-Host "Updating provider configuration in main.tf with certificate paths..."
+
+    # Get absolute paths for the certificate files
+    $rootCAPath  = (Resolve-Path ".\$rootCaName.cer").Path
+    $hostCertPath = (Resolve-Path ".\$hostName.cer").Path
+    $hostKeyPath  = (Resolve-Path ".\$hostName.pfx").Path
+
+    # Read the file as a single string
+    $content = Get-Content $tfFile -Raw
+
+    # Update insecure to false
+    $content = $content -replace '(insecure\s*=\s*)(true|false)', '${1}false'
+    # Update tls_server_name to match the host name
+    $content = $content -replace '(tls_server_name\s*=\s*")[^"]*"', '${1}' + $hostName + '"'
+    # Update certificate file paths
+    $content = $content -replace '(cacert_path\s*=\s*")[^"]*"', '${1}' + $rootCAPath + '"'
+    $content = $content -replace '(cert_path\s*=\s*")[^"]*"', '${1}' + $hostCertPath + '"'
+    $content = $content -replace '(key_path\s*=\s*")[^"]*"', '${1}' + $hostKeyPath + '"'
+
+    Set-Content -Path $tfFile -Value $content
+    Write-Host "Updated provider.tf successfully."
+}
+else {
+    Write-Host "provider.tf not found in $infraRepoPath; skipping provider config update."
+}
+
+    Write-Host @"
 Done preparing Hyper-V host and installing the provider.
 You can now run 'tofu plan'/'tofu apply' in $infraRepoPath.
 "@
-
 }

@@ -87,6 +87,20 @@ terraform {
     }
   }
 }
+"@
+        Set-Content -Path $tfFile -Value $tfContent
+        Write-Host "Created main.tf at $tfFile"
+    }
+    else {
+        Write-Host "main.tf already exists; not overwriting."
+    }
+
+
+    # If no provider.tf found, create one from Hyper-V config
+    $ProviderFile = Join-Path -Path $infraRepoPath -ChildPath "provider.tf"
+    if (-not (Test-Path $ProviderFile)) {
+        Write-Host "No provider.tf found; creating provider.tf using Hyper-V configuration..."
+        $tfContent = @"
 
 provider "hyperv" {
   user            = "$($Config.HyperV.User)"
@@ -104,11 +118,11 @@ provider "hyperv" {
   timeout         = "$($Config.HyperV.Timeout)"
 }
 "@
-        Set-Content -Path $tfFile -Value $tfContent
-        Write-Host "Created main.tf at $tfFile"
+        Set-Content -Path $ProviderFile -Value $tfContent
+        Write-Host "Created provider.tf at $ProviderFile"
     }
     else {
-        Write-Host "main.tf already exists; not overwriting."
+        Write-Host "provider.tf already exists; not overwriting."
     }
 }
 
