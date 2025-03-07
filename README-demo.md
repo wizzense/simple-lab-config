@@ -1,6 +1,6 @@
 # opentofu-lab-automation
 
-  DEMO Kicker script for a fresh Windows Server Core setup with robust error handling.
+  DEMO Kicker script for a fresh Windows Server Core setup
 
   1) Loads config.json from the same folder by default (override with -ConfigFile).
   2) Checks if command-line Git is installed and in PATH.
