@@ -12,21 +12,69 @@ $ErrorActionPreference = 'Stop'
 # 1) Environment Preparation
 # ------------------------------
 
-Write-Host "Enabling Hyper-V feature..."
-Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+# Check if Hyper-V feature is enabled
+$hvFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V
+if ($hvFeature.State -ne "Enabled") {
+    Write-Host "Enabling Hyper-V feature..."
+    Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+} else {
+    Write-Host "Hyper-V is already enabled."
+}
 
-Write-Host "Enabling WinRM..."
-Enable-PSRemoting -SkipNetworkProfileCheck -Force
-Set-WSManInstance WinRM/Config/WinRS -ValueSet @{MaxMemoryPerShellMB = 1024}
-Set-WSManInstance WinRM/Config -ValueSet @{MaxTimeoutms=1800000}
+# Check if WinRM is enabled by testing the local WSMan endpoint
 try {
-    Set-WSManInstance WinRM/Config/Client -ValueSet @{TrustedHosts="*"}
+    Test-WSMan -ComputerName localhost -ErrorAction Stop | Out-Null
+    Write-Host "WinRM is already enabled."
 }
 catch {
-    Write-Host "TrustedHosts is set by policy."
+    Write-Host "Enabling WinRM..."
+    Enable-PSRemoting -SkipNetworkProfileCheck -Force
 }
 
-Set-WSManInstance WinRM/Config/Service/Auth -ValueSet @{Negotiate = $true}
+# Check and set WinRS MaxMemoryPerShellMB to 1024 if needed
+$currentMaxMemory = (Get-WSManInstance -ResourceURI winrm/config/WinRS).MaxMemoryPerShellMB
+if ($currentMaxMemory -ne 1024) {
+    Write-Host "Setting WinRS MaxMemoryPerShellMB to 1024..."
+    Set-WSManInstance -ResourceURI winrm/config/WinRS -ValueSet @{MaxMemoryPerShellMB = 1024}
+}
+else {
+    Write-Host "WinRS MaxMemoryPerShellMB is already 1024."
+}
+
+# Check and set WinRM MaxTimeoutms to 1800000 if needed
+$currentTimeout = (Get-WSManInstance -ResourceURI winrm/config).MaxTimeoutms
+if ($currentTimeout -ne 1800000) {
+    Write-Host "Setting WinRM MaxTimeoutms to 1800000..."
+    Set-WSManInstance -ResourceURI winrm/config -ValueSet @{MaxTimeoutms = 1800000}
+}
+else {
+    Write-Host "WinRM MaxTimeoutms is already 1800000."
+}
+
+# Check and set TrustedHosts to "*" for the WinRM client if needed
+$currentTrustedHosts = (Get-WSManInstance -ResourceURI winrm/config/Client).TrustedHosts
+if ($currentTrustedHosts -ne "*") {
+    Write-Host "Setting TrustedHosts to '*'..."
+    try {
+        Set-WSManInstance -ResourceURI winrm/config/Client -ValueSet @{TrustedHosts = "*"}
+    }
+    catch {
+        Write-Host "TrustedHosts is set by policy."
+    }
+}
+else {
+    Write-Host "TrustedHosts is already set to '*'."
+}
+
+# Check and set Negotiate to True in WinRM service auth if needed
+$currentNegotiate = (Get-WSManInstance -ResourceURI winrm/config/Service/Auth).Negotiate
+if (-not $currentNegotiate) {
+    Write-Host "Setting Negotiate to True..."
+    Set-WSManInstance -ResourceURI winrm/config/Service/Auth -ValueSet @{Negotiate = $true}
+}
+else {
+    Write-Host "Negotiate is already set to True."
+}
 
 # ------------------------------
 # 2) Configure WinRM HTTPS
@@ -212,6 +260,11 @@ if (Test-Path $tfFile) {
     $rootCAPath  = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$rootCaName.cer")).Path
     $hostCertPath = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$hostName.cer")).Path
     $hostKeyPath  = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$hostName.pfx")).Path
+    
+    # Escape backslashes for Terraform
+    $escapedRootCAPath = $rootCAPath -replace '\', '\\'
+    $escapedHostCertPath = $hostCertPath -replace '\', '\\'
+    $escapedHostKeyPath = $hostKeyPath -replace '\', '\\'
 
     # Read the file as a single string
     $content = Get-Content $tfFile -Raw
@@ -221,9 +274,9 @@ if (Test-Path $tfFile) {
     # Update tls_server_name to match the host name
     $content = $content -replace '(tls_server_name\s*=\s*")[^"]*"', ( '${1}' + $hostName + '"' )
     # Update certificate file paths
-    $content = $content -replace '(cacert_path\s*=\s*")[^"]*"', ( '${1}' + $rootCAPath + '"' )
-    $content = $content -replace '(cert_path\s*=\s*")[^"]*"', ( '${1}' + $hostCertPath + '"' )
-    $content = $content -replace '(key_path\s*=\s*")[^"]*"', ( '${1}' + $hostKeyPath + '"' )
+    $content = $content -replace '(cacert_path\s*=\s*")[^"]*"', ( '${1}' + $escapedrootCAPath + '"' )
+    $content = $content -replace '(cert_path\s*=\s*")[^"]*"', ( '${1}' + $escapedhostCertPath + '"' )
+    $content = $content -replace '(key_path\s*=\s*")[^"]*"', ( '${1}' + $escapedhostKeyPath + '"' )
 
     Set-Content -Path $tfFile -Value $content
     Write-Host "Updated providers.tf successfully."
