@@ -13,7 +13,6 @@
   4) Clones a repository from config.json -> RepoUrl to config.json -> LocalPath (or a default path).
   5) Invokes runner.ps1 from that repo.
 
-
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/kicker-git-demo.ps1' -OutFile '.\kicker-git-demo.ps1'; .\kicker-git-demo.ps1"
 
 Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git
@@ -24,13 +23,18 @@ I recommend you customize config.json.
 
 To get opentofu setup, really you only need to specify these when prompted: 0006,0007,0008,0009,0010
 
--a----          3/7/2025   7:12 AM            873 0000_Cleanup-Files.ps1
--a----          3/7/2025   7:08 AM           1024 0001_Reset-Git.ps1
--a----          3/7/2025   8:09 AM           2388 0006_Install-ValidationTools.ps1
--a----          3/7/2025   6:47 AM           1673 0007_Install-Go.ps1
--a----          3/7/2025   8:09 AM            279 0008_Install-OpenTofu.ps1
--a----          3/7/2025   8:06 AM           6503 0009_Initialize-OpenTofu.ps1
--a----          3/7/2025   8:06 AM          12857 0010_Prepare-HyperVHost.ps1
+The runner script can run the following: 
+
+-a----          3/7/2025   7:12 AM            873 0000_Cleanup-Files.ps1 - Removed lab-infra opentofu infrastructure repo
+-a----          3/7/2025   7:08 AM           1024 0001_Reset-Git.ps1 - resets lab-infra opentofu infrastructure repo in case you modify any files and just want to re-pull the files/ reset
+
+-a----          3/7/2025   8:09 AM           2388 0006_Install-ValidationTools.ps1 - downloads and installs cosign
+-a----          3/7/2025   6:47 AM           1673 0007_Install-Go.ps1 - downloads and installs Go
+-a----          3/7/2025   8:09 AM            279 0008_Install-OpenTofu.ps1 - Downloads and installs opentofu standalone (verified with cosign)
+-a----          3/7/2025   8:06 AM           6503 0009_Initialize-OpenTofu.ps1 - setups up opentofu and the lab-infra repo
+-a----          3/7/2025   8:06 AM          12857 0010_Prepare-HyperVHost.ps1 - runs a lot of configuration to prep a hyper-v host to be used as a provider 
+
+Completely optional stuff I usee for other things:
 -a----          3/7/2025   7:08 AM            616 0100_Enable-WinRM.ps1
 -a----          3/7/2025   7:08 AM            725 0101_Enable-RemoteDesktop.ps1
 -a----          3/7/2025   7:08 AM            613 0102_Configure-Firewall.ps1
