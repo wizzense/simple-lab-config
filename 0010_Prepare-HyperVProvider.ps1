@@ -3,6 +3,8 @@ Param(
     [PSCustomObject]$Config
 )
 
+if ($Config.PrepareHyperVHost -eq $true) {
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -10,31 +12,81 @@ $ErrorActionPreference = 'Stop'
 # 1) Environment Preparation
 # ------------------------------
 
-Write-Host "Enabling Hyper-V feature..."
-Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+# Check if Hyper-V feature is enabled
+$hvFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V
+if ($hvFeature.State -ne "Enabled") {
+    Write-Host "Enabling Hyper-V feature..."
+    Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+} else {
+    Write-Host "Hyper-V is already enabled."
+}
 
-Write-Host "Enabling WinRM..."
-Enable-PSRemoting -SkipNetworkProfileCheck -Force
-Set-WSManInstance WinRM/Config/WinRS -ValueSet @{MaxMemoryPerShellMB = 1024}
-Set-WSManInstance WinRM/Config -ValueSet @{MaxTimeoutms=1800000}
+# Check if WinRM is enabled by testing the local WSMan endpoint
 try {
-    Set-WSManInstance WinRM/Config/Client -ValueSet @{TrustedHosts="*"}
+    Test-WSMan -ComputerName localhost -ErrorAction Stop | Out-Null
+    Write-Host "WinRM is already enabled."
 }
 catch {
-    Write-Host "TrustedHosts is set by policy."
+    Write-Host "Enabling WinRM..."
+    Enable-PSRemoting -SkipNetworkProfileCheck -Force
 }
 
-Set-WSManInstance WinRM/Config/Service/Auth -ValueSet @{Negotiate = $true}
+# Check and set WinRS MaxMemoryPerShellMB to 1024 if needed
+$currentMaxMemory = (Get-WSManInstance -ResourceURI winrm/config/WinRS).MaxMemoryPerShellMB
+if ($currentMaxMemory -ne 1024) {
+    Write-Host "Setting WinRS MaxMemoryPerShellMB to 1024..."
+    Set-WSManInstance -ResourceURI winrm/config/WinRS -ValueSet @{MaxMemoryPerShellMB = 1024}
+}
+else {
+    Write-Host "WinRS MaxMemoryPerShellMB is already 1024."
+}
+
+# Check and set WinRM MaxTimeoutms to 1800000 if needed
+$currentTimeout = (Get-WSManInstance -ResourceURI winrm/config).MaxTimeoutms
+if ($currentTimeout -ne 1800000) {
+    Write-Host "Setting WinRM MaxTimeoutms to 1800000..."
+    Set-WSManInstance -ResourceURI winrm/config -ValueSet @{MaxTimeoutms = 1800000}
+}
+else {
+    Write-Host "WinRM MaxTimeoutms is already 1800000."
+}
+
+# Check and set TrustedHosts to "*" for the WinRM client if needed
+$currentTrustedHosts = (Get-WSManInstance -ResourceURI winrm/config/Client).TrustedHosts
+if ($currentTrustedHosts -ne "*") {
+    Write-Host "Setting TrustedHosts to '*'..."
+    try {
+        Set-WSManInstance -ResourceURI winrm/config/Client -ValueSet @{TrustedHosts = "*"}
+    }
+    catch {
+        Write-Host "TrustedHosts is set by policy."
+    }
+}
+else {
+    Write-Host "TrustedHosts is already set to '*'."
+}
+
+# Check and set Negotiate to True in WinRM service auth if needed
+$currentNegotiate = (Get-WSManInstance -ResourceURI winrm/config/Service/Auth).Negotiate
+if (-not $currentNegotiate) {
+    Write-Host "Setting Negotiate to True..."
+    Set-WSManInstance -ResourceURI winrm/config/Service/Auth -ValueSet @{Negotiate = $true}
+}
+else {
+    Write-Host "Negotiate is already set to True."
+}
 
 # ------------------------------
 # 2) Configure WinRM HTTPS
 # ------------------------------
 
-$rootCaName       = "DevRootCA"
-$rootCaPassword   = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
+$rootCaName = $config.CertificateAuthority.CommonName
+$UserInput = Read-Host -Prompt "Enter the password for the Root CA certificate" -AsSecureString
+$rootCaPassword = $UserInput
+#$rootCaPassword   = ConvertTo-SecureString $UserInput -AsPlainText -Force
 $rootCaCertificate = Get-ChildItem cert:\LocalMachine\Root | Where-Object {$_.Subject -eq "CN=$rootCaName"}
 
-if (!$rootCaCertificate) {
+if ($rootCaCertificate) {
     # Cleanup if present
     Get-ChildItem cert:\LocalMachine\My | Where-Object {$_.subject -eq "CN=$rootCaName"} | Remove-Item -Force -ErrorAction SilentlyContinue
     Remove-Item ".\$rootCaName.cer" -Force -ErrorAction SilentlyContinue
@@ -56,7 +108,7 @@ if (!$rootCaCertificate) {
         NotAfter          = (Get-Date).AddYears(5)
     }
 
-    Write-Host "Creating DevRootCA..."
+    Write-Host "Creating Root CA..."
     $rootCaCertificate = New-SelfSignedCertificate @params
 
     Export-Certificate -Cert $rootCaCertificate -FilePath ".\$rootCaName.cer" -Verbose
@@ -72,10 +124,14 @@ if (!$rootCaCertificate) {
 
 # Create Host Certificate
 $hostName      = [System.Net.Dns]::GetHostName()
-$hostPassword  = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
+$UserInput = Read-Host -Prompt "Enter the password for the host." -AsSecureString
+$hostPassword = $UserInput
+#$hostPassword  = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
 $hostCertificate = Get-ChildItem cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$hostName"}
 
-if (!$hostCertificate) {
+if ($hostCertificate) {
+    # Cleanup if present
+    Get-ChildItem cert:\LocalMachine\My | Where-Object {$_.subject -eq "CN=$hostName"} | Remove-Item -Force -ErrorAction SilentlyContinue
     Remove-Item ".\$hostName.cer" -Force -ErrorAction SilentlyContinue
     Remove-Item ".\$hostName.pfx" -Force -ErrorAction SilentlyContinue
 
@@ -121,6 +177,7 @@ New-NetFirewallRule -DisplayName "Windows Remote Management (HTTPS-In)" -Name "W
 # ------------------------------
 # 3) Configure WinRM HTTP (optional)
 # ------------------------------
+<#
 $PubNets = Get-NetConnectionProfile -NetworkCategory Public -ErrorAction SilentlyContinue
 foreach ($PubNet in $PubNets) {
     Set-NetConnectionProfile -InterfaceIndex $PubNet.InterfaceIndex -NetworkCategory Private
@@ -138,6 +195,7 @@ Restart-Service WinRM -Verbose -Force
 
 Write-Host "Allowing HTTP (5985) through firewall..."
 New-NetFirewallRule -DisplayName "Windows Remote Management (HTTP-In)" -Name "WinRMHTTPIn" -Profile Any -LocalPort 5985 -Protocol TCP -Verbose
+#>
 
 # ------------------------------
 # 4) Build & Install Hyper-V Provider in InfraRepoPath
@@ -190,7 +248,47 @@ Copy-Item -Path $providerExePath -Destination $destinationBinary -Force -Verbose
 
 Write-Host "Hyper-V provider installed at: $destinationBinary"
 
-Write-Host @"
+# ------------------------------
+# 5) Update Provider Config File (providers.tf)
+# ------------------------------
+<#
+I am disabling this for now because opentofu doesn't like the certs :(
+
+$tfFile = Join-Path -Path $infraRepoPath -ChildPath "providers.tf"
+if (Test-Path $tfFile) {
+    Write-Host "Updating providers configuration in providers.tf with certificate paths..."
+
+    # Get absolute paths for the certificate files using $infraRepoPath
+    $rootCAPath   = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$rootCaName.cer")).Path
+    $hostCertPath = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$hostName.cer")).Path
+    $hostKeyPath  = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$hostName.pfx")).Path
+
+    # Escape backslashes for Terraform using literal string replacement
+    $escapedRootCAPath   = $rootCAPath.Replace('\', '\\')
+    $escapedHostCertPath = $hostCertPath.Replace('\', '\\')
+    $escapedHostKeyPath  = $hostKeyPath.Replace('\', '\\')
+
+    # Read the file as a single string
+    $content = Get-Content $tfFile -Raw
+
+    # Update insecure to false
+    $content = $content -replace '(insecure\s*=\s*)(true|false)', '${1}false'
+    # Update tls_server_name to match the host name
+    $content = $content -replace '(tls_server_name\s*=\s*")[^"]*"', ( '${1}' + $hostName + '"' )
+    # Update certificate file paths with the escaped values
+    $content = $content -replace '(cacert_path\s*=\s*")[^"]*"', ( '${1}' + $escapedRootCAPath + '"' )
+    $content = $content -replace '(cert_path\s*=\s*")[^"]*"', ( '${1}' + $escapedHostCertPath + '"' )
+    $content = $content -replace '(key_path\s*=\s*")[^"]*"', ( '${1}' + $escapedHostKeyPath + '"' )
+
+    Set-Content -Path $tfFile -Value $content
+    Write-Host "Updated providers.tf successfully."
+}
+else {
+    Write-Host "providers.tf not found in $infraRepoPath; skipping provider config update."
+}
+#>
+    Write-Host @"
 Done preparing Hyper-V host and installing the provider.
 You can now run 'tofu plan'/'tofu apply' in $infraRepoPath.
 "@
+}

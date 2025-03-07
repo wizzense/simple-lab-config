@@ -15,34 +15,36 @@ Param(
     [PSCustomObject]$Config
 )
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+if ($Config.InitializeOpenTofu -eq $true) {
 
-Write-Host "---- Hyper-V Configuration Check ----"
-Write-Host "Final Hyper-V configuration:"
-$Config.HyperV | Format-List
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
-# --------------------------------------------------
-# 1) Determine infra repo path
-# --------------------------------------------------
-$infraRepoUrl  = $Config.InfraRepoUrl
-$infraRepoPath = $Config.InfraRepoPath
+    Write-Host "---- Hyper-V Configuration Check ----"
+    Write-Host "Final Hyper-V configuration:"
+    $Config.HyperV | Format-List
 
-# Fallback if InfraRepoPath is not specified
-if ([string]::IsNullOrWhiteSpace($infraRepoPath)) {
-    $infraRepoPath = Join-Path $PSScriptRoot "my-infra"
-}
+    # --------------------------------------------------
+    # 1) Determine infra repo path
+    # --------------------------------------------------
+    $infraRepoUrl  = $Config.InfraRepoUrl
+    $infraRepoPath = $Config.InfraRepoPath
 
-Write-Host "Using InfraRepoPath: $infraRepoPath"
+    # Fallback if InfraRepoPath is not specified
+    if ([string]::IsNullOrWhiteSpace($infraRepoPath)) {
+        $infraRepoPath = Join-Path $PSScriptRoot "my-infra"
+    }
 
-# Ensure local directory exists
-if (Test-Path $infraRepoPath) {
-    Write-Host "Directory already exists: $infraRepoPath"
-}
-else {
-    New-Item -ItemType Directory -Path $infraRepoPath -Force | Out-Null
-    Write-Host "Created directory: $infraRepoPath"
-}
+    Write-Host "Using InfraRepoPath: $infraRepoPath"
+
+    # Ensure local directory exists
+    if (Test-Path $infraRepoPath) {
+        Write-Host "Directory already exists: $infraRepoPath"
+    }
+    else {
+        New-Item -ItemType Directory -Path $infraRepoPath -Force | Out-Null
+        Write-Host "Created directory: $infraRepoPath"
+    }
 
 # --------------------------------------------------
 # 2) If InfraRepoUrl is given, clone directly to InfraRepoPath
@@ -85,6 +87,20 @@ terraform {
     }
   }
 }
+"@
+        Set-Content -Path $tfFile -Value $tfContent
+        Write-Host "Created main.tf at $tfFile"
+    }
+    else {
+        Write-Host "main.tf already exists; not overwriting."
+    }
+
+
+    # If no provider.tf found, create one from Hyper-V config
+    $ProviderFile = Join-Path -Path $infraRepoPath -ChildPath "providers.tf"
+    if (-not (Test-Path $ProviderFile)) {
+        Write-Host "No providers.tf found; creating providers.tf using Hyper-V configuration..."
+        $tfContent = @"
 
 provider "hyperv" {
   user            = "$($Config.HyperV.User)"
@@ -102,11 +118,11 @@ provider "hyperv" {
   timeout         = "$($Config.HyperV.Timeout)"
 }
 "@
-        Set-Content -Path $tfFile -Value $tfContent
-        Write-Host "Created main.tf at $tfFile"
+        Set-Content -Path $ProviderFile -Value $tfContent
+        Write-Host "Created providers.tf at $ProviderFile"
     }
     else {
-        Write-Host "main.tf already exists; not overwriting."
+        Write-Host "providers.tf already exists; not overwriting."
     }
 }
 
@@ -154,7 +170,7 @@ Write-Host "OpenTofu initialized successfully."
 Write-Host @"
 NEXT STEPS:
 1. Check or edit the .tf files in '$infraRepoPath'.
-2. You may need to modify main.tf to match your Hyper-V configuration.
+2. You may need to modify variables.tf to match your Hyper-V configuration.
  - Set host, user, password, etc. to match your Hyper-V settings.
 3. Run 'tofu plan' to preview changes.
 4. Run 'tofu apply' to provision resources.
@@ -163,3 +179,5 @@ NEXT STEPS:
 # Optionally place you in $infraRepoPath at the end
 Set-Location $infraRepoPath
 exit 0
+
+}

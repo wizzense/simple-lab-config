@@ -1,31 +1,89 @@
 # opentofu-lab-automation
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/main/kicker-git.ps1' -OutFile '.\kicker-git.ps1'; .\kicker-git.ps1"
+  DEMO Kicker script for a fresh Windows Server Core setup
+
+  1) Downloads and loads config-demo.json from the same folder by default (override with -ConfigFile).
+  2) Checks if command-line Git is installed and in PATH. (requirement)
+     - Prompts to install a minimal version if missing.
+     - Updates PATH if installed but not found in PATH.
+  3) Checks if GitHub CLI is installed and in PATH. (requirement)
+     - Prompts to installs GitHub CLI if missing.
+     - Updates PATH if installed but not found in PATH.
+     - Prompts for authentication if not already authenticated.
+  4) Clones this repository from config.json -> RepoUrl to config.json -> LocalPath (or a default path).
+  5) Invokes runner.ps1 from this repo. Runner can be ran with optional parameters to automatically run, but it will prompt you to manually select which scripts to run by default.
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Byp ass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/kicker-git-demo.ps1' -OutFile '.\kicker-git-demo.ps1'; .\kicker-git-demo.ps1"
+```
+It will prompt print the current config and prompt you to customize it interactively. 
 
 Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git
 
-The first time you run this it will download and install Git and Github CLI for you as well as clone the repos needed for the rest of the configuration.
+To get opentofu setup, really you only need to specify these when runner.ps1 is called: 0006,0007,0008,0009,0010
 
-I recommend you customize config.json.
+The runner script can run the following: 
 
-To get opentofu setup, really you only need to run: 0005,0007,0008,0009,0010
+0000_Cleanup-Files.ps1 - Removed lab-infra opentofu infrastructure repo
 
-0000 - 0000_Enable-WinRM.ps1
-0001 - 0001_Enable-RemoteDesktop.ps1
-0002 - 0002_Configure-Firewall.ps1
-0003 - 0003_Change-ComputerName.ps1
-0005 - 0005_Install-HyperV.ps1
-0006 - 0006_Install-WAC.ps1
-0007 - 0007_Install-Go.ps1
-0008 - 0008_Install-OpenTofu.ps1
-0009 - 0009_Initialize-OpenTofu.ps1
-0010 - 0010_Prepare-HyperVHost.ps1
+0001_Reset-Git.ps1 - resets lab-infra opentofu infrastructure repo in case you modify any files and just want to re-pull the files/ reset
+
+0006_Install-ValidationTools.ps1 - downloads the  cosign exe to C:\temo\cosign
+
+0007_Install-Go.ps1 - downloads and installs Go
+
+0008_Install-OpenTofu.ps1 - Downloads and installs opentofu standalone (verified with cosign)
+
+0009_Initialize-OpenTofu.ps1 - setups up opentofu and the lab-infra repo in C:\temp\base-infra
+
+0010_Prepare-HyperVHost.ps1 - runs a lot of configuration to prep a hyper-v host to be used as a provider 
+
+- Enables hyper-v if not enabled
+  
+- enables WinRM if not enabled
+  
+  - WinRS MaxMemoryPerShellMB to 1024
+    
+  - WinRM MaxTimeoutms to 1800000
+    
+  - TrustedHosts to '*'
+    
+  - Negotiate to True
+    
+- creates a self-signed RootCA Cert (prompts for password)
+  
+- creates self-signed host certificate (prompts for password)
+  
+- Configured WinRM HTTPs Listener
+  
+- Allows HTTP 5986 through firewall
+  
+- Creates a Go workspace in C:\GoWorkspace
+  
+  - Builds the hyperv-provider for opentofu from tailiesins git
+    
+  - Copies the provider to the lab-infra
+ 
+- Note, certificate validation for the hyperv provider is currently disabled by default, I am still working out to get it to use the certificates. I think they have to be converted to .pem first.
+
+Completely optional stuff I usee for other things:
+-a----          3/7/2025   7:08 AM            616 0100_Enable-WinRM.ps1
+-a----          3/7/2025   7:08 AM            725 0101_Enable-RemoteDesktop.ps1
+-a----          3/7/2025   7:08 AM            613 0102_Configure-Firewall.ps1
+-a----          3/7/2025   7:08 AM           1203 0103_Change-ComputerName.ps1
+-a----          3/7/2025   7:08 AM           1895 0104_Install-CA.ps1
+-a----          3/7/2025   7:08 AM           1141 0105_Install-HyperV.ps1
+-a----          3/7/2025   7:08 AM           2568 0106_Install-WAC.ps1
+-a----          3/7/2025   7:08 AM            272 0111_Disable-TCPIP6.ps1
+-a----          3/7/2025   7:08 AM            705 0112_Enable-PXE.ps1
+-a----          3/7/2025   7:08 AM            351 0113_Config-DNS.ps1
+-a----          3/7/2025   7:08 AM            259 0114_Config-TrustedHosts.ps1
 
 To run ALL scripts, type 'all'.
 To run one or more specific scripts, provide comma separated 4-digit prefixes (e.g. 0001,0003).
 Or type 'exit' to quit this script.
 
-Make sure to modify the 'main.tf' so it uses your admin credentials and hostname/IP of the host machine.
+Make sure to modify the 'main.tf' so it uses your admin credentials and hostname/IP of the host machine if you don't have a customized config.json or choose not to customize.
 
 provider "hyperv" {
   user            = "ad\\administrator"

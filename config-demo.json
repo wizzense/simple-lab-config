@@ -1,0 +1,61 @@
+{
+  "ComputerName": "core-lab",
+  "SetComputerName": false,
+  "DNSServers": "192.158.1.35,192.168.1.1",
+  "SetDNSServers": false,
+  "TrustedHosts": "*",
+  "SetTrustedHosts": false,
+  "DisableTCPIP6": false,
+  "AllowRemoteDesktop": false,
+  "ConfigureFirewall": false,
+  "FirewallPorts": [3389, 5985, 5986, 445, 135, "49152-65535"],
+  "ConfigPXE": false,
+  "InstallGit": true,
+  "InstallGitHubCLI": true,
+  "InstallHyperV": true,
+  "InstallWAC": false,
+  "InstallGo": true,
+  "InstallOpenTofu": true,
+  "InitializeOpenTofu": true,
+  "PrepareHyperVHost": true,
+  "Install-CA": false,
+  "InstallCosign": true,
+  "CosignURL": "https://github.com/sigstore/cosign/releases/download/v2.4.3/cosign-windows-amd64.exe",
+  "CosignPath": "C:\\temp\\cosign",
+  "InstallGPG": false,
+  "CertificateAuthority": {
+    "CommonName": "core-lab-RootCA",
+    "ValidityYears": 5
+  },
+  "HyperV": {
+    "User": "",
+    "Password": "",
+    "Host": "",
+    "Port": 5986,
+    "Https": true,
+    "Insecure": true,
+    "UseNtlm": true,
+    "TlsServerName": "",
+    "CacertPath": "",
+    "CertPath": "",
+    "KeyPath": "",
+    "ScriptPath": "C:/Temp/terraform_%RAND%.cmd",
+    "Timeout": "30s"
+  },
+  "WAC": {
+    "InstallPort": 443
+  },
+  "GitUsername": "",
+  "GitEmail": "",
+  "GitHubCLIInstallerUrl": "https://github.com/cli/cli/releases/download/v2.67.0/gh_2.67.0_windows_amd64.msi",
+  "RepoUrl": "https://github.com/wizzense/opentofu-lab-automation.git",
+  "LocalPath": "",
+  "RunnerScriptName": "runner.ps1",
+  "ConfigFile": "./config.json",
+  "Go": {
+    "InstallerUrl": "https://go.dev/dl/go1.24.1.windows-amd64.msi"
+  },
+
+  "InfraRepoUrl": "https://github.com/wizzense/tofu-base-lab.git",   
+  "InfraRepoPath": "C:\\Temp\\base-infra"
+}

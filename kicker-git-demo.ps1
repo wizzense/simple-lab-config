@@ -1,6 +1,6 @@
 <# 
 .SYNOPSIS
-  Kicker script for a fresh Windows Server Core setup with robust error handling.
+  DEMO Kicker script for a fresh Windows Server Core setup with robust error handling.
 
   1) Loads config.json from the same folder by default (override with -ConfigFile).
   2) Checks if command-line Git is installed and in PATH.
@@ -17,8 +17,8 @@
 $ErrorActionPreference = 'Stop'  # So any error throws an exception
 $ProgressPreference = 'SilentlyContinue'
 
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/main/config.json' -OutFile '.\config.json'
-$ConfigFile = (Join-Path $PSScriptRoot "config.json")
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/config-demo.json' -OutFile '.\config-demo.json'
+$ConfigFile = (Join-Path $PSScriptRoot "config-demo.json")
 
 Write-Host "==== Kicker script starting ===="
 Write-Host "Script location: $PSScriptRoot"
@@ -54,6 +54,7 @@ if ($UserInput -ne 'Y') {
 }
 
 Write-Host "==== Kicker Script Continuing ===="
+
 
 # ------------------------------------------------
 # (2) Check & Install Git for Windows
@@ -201,14 +202,15 @@ if (!(Test-Path $repoPath)) {
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
 
-    & "$ghExePath" repo clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
-
+    #& "$ghExePath" repo clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
+    & "$gitPath" clone -b dev --single-branch $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\git_clone_log.txt"
+    
     $ErrorActionPreference = $prevEAP
 
     # Fallback to git if the GitHub CLI clone appears to have failed
     if (!(Test-Path $repoPath)) {
         Write-Host "GitHub CLI clone failed. Trying git clone..."
-        & "$gitPath" clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\git_clone_log.txt"
+        & "$gitPath" clone -b dev --single-branch $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\git_clone_log.txt"
 
         if (!(Test-Path $repoPath)) {
             Write-Error "ERROR: Repository cloning failed. Check logs: $env:TEMP\gh_clone_log.txt and $env:TEMP\git_clone_log.txt"
@@ -239,7 +241,7 @@ if (!(Test-Path $runnerScriptName)) {
 }
 
 Write-Host "Running $runnerScriptName from $repoPath ..."
-. .\$runnerScriptName -AutoAccept -RunScripts all
+. .\$runnerScriptName #-AutoAccept -RunScripts all
 
 Write-Host "`n=== Kicker script finished successfully! ==="
 exit 0

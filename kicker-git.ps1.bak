@@ -54,7 +54,6 @@ if ($UserInput -ne 'Y') {
 }
 
 Write-Host "==== Kicker Script Continuing ===="
-
 # ------------------------------------------------
 # (2) Check & Install Git for Windows
 # ------------------------------------------------
