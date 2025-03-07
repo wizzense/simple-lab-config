@@ -213,7 +213,7 @@ if (!(Test-Path $runnerScriptName)) {
 }
 
 Write-Host "Running $runnerScriptName from $repoPath ..."
-. .\$runnerScriptName
+. .\$runnerScriptName -AutoAccept -RunScripts all
 
 Write-Host "`n=== Kicker script finished successfully! ==="
 exit 0
