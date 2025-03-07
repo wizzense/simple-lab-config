@@ -3,6 +3,7 @@ Param(
     [PSCustomObject]$Config
 )
 
+if ($Config.InstallCA -eq $true) {
 Write-Host "Checking for existing Certificate Authority (Standalone Root CA)..."
 
 # Only proceed if you actually want to install a CA.
@@ -50,3 +51,5 @@ Install-AdcsCertificationAuthority `
     -Force
 
 Write-Host "Standalone Root CA '$CAName' installation complete."
+
+}

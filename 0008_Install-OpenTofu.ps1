@@ -4,4 +4,6 @@ param(
     [PSCustomObject]$Config
     )
 
-& .\OpenTofuInstaller.ps1 -installMethod standalone -skipVerify
+if ($Config.InstallOpenTofu -eq $true) {
+    & .\OpenTofuInstaller.ps1 -installMethod standalone -skipVerify
+}

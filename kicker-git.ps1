@@ -17,7 +17,7 @@
 $ErrorActionPreference = 'Stop'  # So any error throws an exception
 $ProgressPreference = 'SilentlyContinue'
 
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/core-lab-config.json' -OutFile '.\config.json'
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/config-demo.json' -OutFile '.\config-demo.json'
 $ConfigFile = (Join-Path $PSScriptRoot "config.json")
 
 # ------------------------------------------------
@@ -40,23 +40,28 @@ try {
 # ------------------------------------------------
 # (2) Check & Install Git for Windows
 # ------------------------------------------------
+
+
 Write-Host "==== Checking if Git is installed ===="
 $gitPath = "C:\Program Files\Git\cmd\git.exe"
 
 if (Test-Path $gitPath) {
     Write-Host "Git is already installed at: $gitPath"
 } else {
-    Write-Host "Git is not installed. Downloading and installing Git for Windows..."
 
-    $gitInstallerUrl = "https://github.com/git-for-windows/git/releases/download/v2.48.1.windows.1/Git-2.48.1-64-bit.exe"
-    $gitInstallerPath = Join-Path -Path $env:TEMP -ChildPath "GitInstaller.exe"
+    if ($Config.InstallGit -eq $true) {
+        Write-Host "Git is not installed. Downloading and installing Git for Windows..."
 
-    Invoke-WebRequest -Uri $gitInstallerUrl -OutFile $gitInstallerPath -UseBasicParsing
-    Write-Host "Installing Git silently..."
-    Start-Process -FilePath $gitInstallerPath -ArgumentList "/SILENT" -Wait -NoNewWindow
+        $gitInstallerUrl = "https://github.com/git-for-windows/git/releases/download/v2.48.1.windows.1/Git-2.48.1-64-bit.exe"
+        $gitInstallerPath = Join-Path -Path $env:TEMP -ChildPath "GitInstaller.exe"
 
-    Remove-Item -Path $gitInstallerPath -ErrorAction SilentlyContinue
-    Write-Host "Git installation completed."
+        Invoke-WebRequest -Uri $gitInstallerUrl -OutFile $gitInstallerPath -UseBasicParsing
+        Write-Host "Installing Git silently..."
+        Start-Process -FilePath $gitInstallerPath -ArgumentList "/SILENT" -Wait -NoNewWindow
+
+        Remove-Item -Path $gitInstallerPath -ErrorAction SilentlyContinue
+        Write-Host "Git installation completed."
+    }
 }
 
 # Double-check Git
@@ -75,15 +80,18 @@ Write-Host "==== Checking if GitHub CLI is installed ===="
 $ghExePath = "C:\Program Files\GitHub CLI\gh.exe"
 
 if (!(Test-Path $ghExePath)) {
-    Write-Host "GitHub CLI not found. Downloading from $($config.GitHubCLIInstallerUrl)..."
-    $ghCliInstaller = Join-Path -Path $env:TEMP -ChildPath "GitHubCLIInstaller.msi"
-    Invoke-WebRequest -Uri $config.GitHubCLIInstallerUrl -OutFile $ghCliInstaller -UseBasicParsing
+    if ($Config.InstallGitHubCLI -eq $true) {
+        Write-Host "GitHub CLI not found. Downloading from $($config.GitHubCLIInstallerUrl)..."
+        $ghCliInstaller = Join-Path -Path $env:TEMP -ChildPath "GitHubCLIInstaller.msi"
+        Invoke-WebRequest -Uri $config.GitHubCLIInstallerUrl -OutFile $ghCliInstaller -UseBasicParsing
 
-    Write-Host "Installing GitHub CLI silently..."
-    Start-Process msiexec.exe -ArgumentList "/i `"$ghCliInstaller`" /quiet /norestart /log `"$env:TEMP\ghCliInstall.log`"" -Wait -Verb RunAs
-    Remove-Item -Path $ghCliInstaller -ErrorAction SilentlyContinue
+        Write-Host "Installing GitHub CLI silently..."
+        Start-Process msiexec.exe -ArgumentList "/i `"$ghCliInstaller`" /quiet /norestart /log `"$env:TEMP\ghCliInstall.log`"" -Wait -Verb RunAs
+        Remove-Item -Path $ghCliInstaller -ErrorAction SilentlyContinue
 
-    Write-Host "GitHub CLI installation completed."
+        Write-Host "GitHub CLI installation completed."
+    }
+
 } else {
     Write-Host "GitHub CLI found at '$ghExePath'."
 }
@@ -213,7 +221,7 @@ if (!(Test-Path $runnerScriptName)) {
 }
 
 Write-Host "Running $runnerScriptName from $repoPath ..."
-. .\$runnerScriptName -AutoAccept -RunScripts all
+. .\$runnerScriptName #-AutoAccept -RunScripts all
 
 Write-Host "`n=== Kicker script finished successfully! ==="
 exit 0

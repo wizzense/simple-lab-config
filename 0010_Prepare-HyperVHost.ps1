@@ -3,6 +3,8 @@ Param(
     [PSCustomObject]$Config
 )
 
+if ($Config.PrepareHyperVHost -eq $true) {
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -194,3 +196,5 @@ Write-Host @"
 Done preparing Hyper-V host and installing the provider.
 You can now run 'tofu plan'/'tofu apply' in $infraRepoPath.
 "@
+
+}

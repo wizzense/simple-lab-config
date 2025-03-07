@@ -15,34 +15,36 @@ Param(
     [PSCustomObject]$Config
 )
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+if ($Config.InitializeOpenTofu -eq $true) {
 
-Write-Host "---- Hyper-V Configuration Check ----"
-Write-Host "Final Hyper-V configuration:"
-$Config.HyperV | Format-List
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
-# --------------------------------------------------
-# 1) Determine infra repo path
-# --------------------------------------------------
-$infraRepoUrl  = $Config.InfraRepoUrl
-$infraRepoPath = $Config.InfraRepoPath
+    Write-Host "---- Hyper-V Configuration Check ----"
+    Write-Host "Final Hyper-V configuration:"
+    $Config.HyperV | Format-List
 
-# Fallback if InfraRepoPath is not specified
-if ([string]::IsNullOrWhiteSpace($infraRepoPath)) {
-    $infraRepoPath = Join-Path $PSScriptRoot "my-infra"
-}
+    # --------------------------------------------------
+    # 1) Determine infra repo path
+    # --------------------------------------------------
+    $infraRepoUrl  = $Config.InfraRepoUrl
+    $infraRepoPath = $Config.InfraRepoPath
 
-Write-Host "Using InfraRepoPath: $infraRepoPath"
+    # Fallback if InfraRepoPath is not specified
+    if ([string]::IsNullOrWhiteSpace($infraRepoPath)) {
+        $infraRepoPath = Join-Path $PSScriptRoot "my-infra"
+    }
 
-# Ensure local directory exists
-if (Test-Path $infraRepoPath) {
-    Write-Host "Directory already exists: $infraRepoPath"
-}
-else {
-    New-Item -ItemType Directory -Path $infraRepoPath -Force | Out-Null
-    Write-Host "Created directory: $infraRepoPath"
-}
+    Write-Host "Using InfraRepoPath: $infraRepoPath"
+
+    # Ensure local directory exists
+    if (Test-Path $infraRepoPath) {
+        Write-Host "Directory already exists: $infraRepoPath"
+    }
+    else {
+        New-Item -ItemType Directory -Path $infraRepoPath -Force | Out-Null
+        Write-Host "Created directory: $infraRepoPath"
+    }
 
 # --------------------------------------------------
 # 2) If InfraRepoUrl is given, clone directly to InfraRepoPath
@@ -163,3 +165,5 @@ NEXT STEPS:
 # Optionally place you in $infraRepoPath at the end
 Set-Location $infraRepoPath
 exit 0
+
+}
