@@ -7,7 +7,7 @@
   "SetTrustedHosts": false,
   "DisableTCPIP6": false,
   "AllowRemoteDesktop": false,
-  "ConfigureFirewall": true,
+  "ConfigureFirewall": false,
   "FirewallPorts": [3389, 5985, 5986, 445, 135, "49152-65535"],
   "ConfigPXE": false,
   "InstallGit": false,
