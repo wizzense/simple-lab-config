@@ -54,7 +54,7 @@ function Find-Gpg {
 if ($Config.InstallCosign -eq $true) {
     Install-Cosign
 }
-elsif ($Config.InstallGpg -eq $true) {
+elseif ($Config.InstallGpg -eq $true) {
     Find-Gpg
 }
 
