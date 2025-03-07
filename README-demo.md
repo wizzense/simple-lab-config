@@ -40,9 +40,9 @@ The runner script can run the following:
 0010_Prepare-HyperVHost.ps1 - runs a lot of configuration to prep a hyper-v host to be used as a provider 
 
 - Enables hyper-v if not enabled
-- 
+  
 - enables WinRM if not enabled
-- 
+  
   - WinRS MaxMemoryPerShellMB to 1024
     
   - WinRM MaxTimeoutms to 1800000
