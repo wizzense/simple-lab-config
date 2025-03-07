@@ -27,15 +27,15 @@ catch {
 }
 
 
-
 Mount-DiskImage -ImagePath "E:\2_auto_unattend_en-us_windows_server_2025_updated_feb_2025_x64_dvd_3733c10e.iso"
 robocopy H:\ E:\CustomISO\ /E
 mkdir E:\Mount
 dism /mount-image /ImageFile:E:\CustomISO\sources\install.wim /Index:3 /MountDir:E:\Mount
- copy-item "C:\Users\alexa\OneDrive\Documents\0. wizzense\opentofu-lab-automation\bootstrap.ps1" E:\mount\Windows\bootstrap.ps1
+copy-item "C:\Users\alexa\OneDrive\Documents\0. wizzense\opentofu-lab-automation\bootstrap.ps1" E:\mount\Windows\bootstrap.ps1
 Copy-Item $UnattendXML -Destination E:\Mount\Windows\autounattend.xml" -Force
 dism /Unmount-Image /MountDir:E:\Mount /Commit
-C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe -m -o -u2 -udfver102 -bootdata:2#p0,e,bE:\CustomISO\boot\etfsboot.com#pEF,e,bE:\CustomISO\efi\microsoft\boot\efisys.bin E:\CustomISO E:\CustomWinISO.iso
+Set-Location -path "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg"
+.\oscdimg.exe -m -o -u2 -udfver102 -bootdata:2#p0,e,bE:\CustomISO\boot\etfsboot.com#pEF,e,bE:\CustomISO\efi\microsoft\boot\efisys.bin E:\CustomISO E:\CustomWinISO.iso
 
 #>
 
