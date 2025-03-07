@@ -17,7 +17,7 @@
 $ErrorActionPreference = 'Stop'  # So any error throws an exception
 $ProgressPreference = 'SilentlyContinue'
 
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/main/config.json' -OutFile '.\config.json'
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/config-demo.json' -OutFile '.\config-demo.json'
 $ConfigFile = (Join-Path $PSScriptRoot "config.json")
 
 # ------------------------------------------------
@@ -221,7 +221,7 @@ if (!(Test-Path $runnerScriptName)) {
 }
 
 Write-Host "Running $runnerScriptName from $repoPath ..."
-. .\$runnerScriptName -AutoAccept -RunScripts all
+. .\$runnerScriptName #-AutoAccept -RunScripts all
 
 Write-Host "`n=== Kicker script finished successfully! ==="
 exit 0
