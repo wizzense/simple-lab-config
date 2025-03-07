@@ -257,14 +257,14 @@ if (Test-Path $tfFile) {
     Write-Host "Updating providers configuration in providers.tf with certificate paths..."
 
     # Get absolute paths for the certificate files using $infraRepoPath
-    $rootCAPath  = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$rootCaName.cer")).Path
+    $rootCAPath   = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$rootCaName.cer")).Path
     $hostCertPath = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$hostName.cer")).Path
     $hostKeyPath  = (Resolve-Path (Join-Path -Path $infraRepoPath -ChildPath "$hostName.pfx")).Path
-    
-    # Escape backslashes for Terraform
-    $escapedRootCAPath = $rootCAPath -replace '\', '\\'
-    $escapedHostCertPath = $hostCertPath -replace '\', '\\'
-    $escapedHostKeyPath = $hostKeyPath -replace '\', '\\'
+
+    # Escape backslashes for Terraform using literal string replacement
+    $escapedRootCAPath   = $rootCAPath.Replace('\', '\\')
+    $escapedHostCertPath = $hostCertPath.Replace('\', '\\')
+    $escapedHostKeyPath  = $hostKeyPath.Replace('\', '\\')
 
     # Read the file as a single string
     $content = Get-Content $tfFile -Raw
@@ -273,10 +273,10 @@ if (Test-Path $tfFile) {
     $content = $content -replace '(insecure\s*=\s*)(true|false)', '${1}false'
     # Update tls_server_name to match the host name
     $content = $content -replace '(tls_server_name\s*=\s*")[^"]*"', ( '${1}' + $hostName + '"' )
-    # Update certificate file paths
-    $content = $content -replace '(cacert_path\s*=\s*")[^"]*"', ( '${1}' + $escapedrootCAPath + '"' )
-    $content = $content -replace '(cert_path\s*=\s*")[^"]*"', ( '${1}' + $escapedhostCertPath + '"' )
-    $content = $content -replace '(key_path\s*=\s*")[^"]*"', ( '${1}' + $escapedhostKeyPath + '"' )
+    # Update certificate file paths with the escaped values
+    $content = $content -replace '(cacert_path\s*=\s*")[^"]*"', ( '${1}' + $escapedRootCAPath + '"' )
+    $content = $content -replace '(cert_path\s*=\s*")[^"]*"', ( '${1}' + $escapedHostCertPath + '"' )
+    $content = $content -replace '(key_path\s*=\s*")[^"]*"', ( '${1}' + $escapedHostKeyPath + '"' )
 
     Set-Content -Path $tfFile -Value $content
     Write-Host "Updated providers.tf successfully."
@@ -284,7 +284,6 @@ if (Test-Path $tfFile) {
 else {
     Write-Host "providers.tf not found in $infraRepoPath; skipping provider config update."
 }
-
 
     Write-Host @"
 Done preparing Hyper-V host and installing the provider.
