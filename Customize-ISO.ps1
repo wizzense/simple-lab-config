@@ -36,7 +36,7 @@ Copy-Item $UnattendXML -Destination E:\Mount\Windows\autounattend.xml" -Force
 dism /Unmount-Image /MountDir:E:\Mount /Commit
 Set-Location -path "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg"
 .\oscdimg.exe -m -o -u2 -udfver102 -bootdata:2#p0,e,bE:\CustomISO\boot\etfsboot.com#pEF,e,bE:\CustomISO\efi\microsoft\boot\efisys.bin E:\CustomISO E:\CustomWinISO.iso
-
+Dismount-DiskImage -ImagePath "E:\2_auto_unattend_en-us_windows_server_2025_updated_feb_2025_x64_dvd_3733c10e.iso"
 #>
 
 # Define paths
