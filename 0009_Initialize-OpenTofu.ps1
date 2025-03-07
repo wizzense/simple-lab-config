@@ -97,9 +97,9 @@ terraform {
 
 
     # If no provider.tf found, create one from Hyper-V config
-    $ProviderFile = Join-Path -Path $infraRepoPath -ChildPath "provider.tf"
+    $ProviderFile = Join-Path -Path $infraRepoPath -ChildPath "providers.tf"
     if (-not (Test-Path $ProviderFile)) {
-        Write-Host "No provider.tf found; creating provider.tf using Hyper-V configuration..."
+        Write-Host "No providers.tf found; creating providers.tf using Hyper-V configuration..."
         $tfContent = @"
 
 provider "hyperv" {
@@ -119,10 +119,10 @@ provider "hyperv" {
 }
 "@
         Set-Content -Path $ProviderFile -Value $tfContent
-        Write-Host "Created provider.tf at $ProviderFile"
+        Write-Host "Created providers.tf at $ProviderFile"
     }
     else {
-        Write-Host "provider.tf already exists; not overwriting."
+        Write-Host "providers.tf already exists; not overwriting."
     }
 }
 

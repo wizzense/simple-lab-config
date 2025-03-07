@@ -81,7 +81,7 @@ $hostPassword = $UserInput
 #$hostPassword  = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
 $hostCertificate = Get-ChildItem cert:\LocalMachine\My | Where-Object {$_.Subject -eq "CN=$hostName"}
 
-if (!$hostCertificate) {
+if ($hostCertificate) {
     Remove-Item ".\$hostName.cer" -Force -ErrorAction SilentlyContinue
     Remove-Item ".\$hostName.pfx" -Force -ErrorAction SilentlyContinue
 
@@ -202,9 +202,9 @@ Write-Host "Hyper-V provider installed at: $destinationBinary"
 # 5) Update Provider Config File (main.tf)
 # ------------------------------
 
-$tfFile = Join-Path -Path $infraRepoPath -ChildPath "provider.tf"
+$tfFile = Join-Path -Path $infraRepoPath -ChildPath "providers.tf"
 if (Test-Path $tfFile) {
-    Write-Host "Updating provider configuration in main.tf with certificate paths..."
+    Write-Host "Updating providers configuration in providers.tf with certificate paths..."
 
     # Get absolute paths for the certificate files
     $rootCAPath  = (Resolve-Path ".\$rootCaName.cer").Path
@@ -224,10 +224,10 @@ if (Test-Path $tfFile) {
     $content = $content -replace '(key_path\s*=\s*")[^"]*"', '${1}' + $hostKeyPath + '"'
 
     Set-Content -Path $tfFile -Value $content
-    Write-Host "Updated provider.tf successfully."
+    Write-Host "Updated providers.tf successfully."
 }
 else {
-    Write-Host "provider.tf not found in $infraRepoPath; skipping provider config update."
+    Write-Host "providers.tf not found in $infraRepoPath; skipping provider config update."
 }
 
     Write-Host @"
