@@ -1,5 +1,19 @@
 # opentofu-lab-automation
 
+  DEMO Kicker script for a fresh Windows Server Core setup with robust error handling.
+
+  1) Loads config.json from the same folder by default (override with -ConfigFile).
+  2) Checks if command-line Git is installed and in PATH.
+     - Installs a minimal version if missing.
+     - Updates PATH if installed but not found in PATH.
+  3) Checks if GitHub CLI is installed and in PATH.
+     - Installs GitHub CLI if missing.
+     - Updates PATH if installed but not found in PATH.
+     - Prompts for authentication if not already authenticated.
+  4) Clones a repository from config.json -> RepoUrl to config.json -> LocalPath (or a default path).
+  5) Invokes runner.ps1 from that repo.
+
+
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/kicker-git-demo.ps1' -OutFile '.\kicker-git-demo.ps1'; .\kicker-git-demo.ps1"
 
 Example opentofu-infra repo: https://github.com/wizzense/tofu-base-lab.git

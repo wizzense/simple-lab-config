@@ -20,9 +20,14 @@ $ProgressPreference = 'SilentlyContinue'
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/config-demo.json' -OutFile '.\config-demo.json'
 $ConfigFile = (Join-Path $PSScriptRoot "config-demo.json")
 
+Write-Host "==== Kicker script starting ===="
+Write-Host "Script location: $PSScriptRoot"
+Write-Host "Config file: $ConfigFile"
+
 # ------------------------------------------------
 # (1) Load Configuration
 # ------------------------------------------------
+
 Write-Host "==== Loading configuration file ===="
 if (!(Test-Path $ConfigFile)) {
     Write-Error "ERROR: Could not find config.json at $ConfigFile"
@@ -36,6 +41,20 @@ try {
     Write-Error "ERROR: Failed to parse JSON from $ConfigFile. $($_.Exception.Message)"
     exit 1
 }
+
+
+Write-Host "This script will install Git for Windows, GitHub CLI, and clone a repository."
+Write-Host "It will then run a script from the repository. CONTINUE?"
+Write-Host $Config.RepoUrl
+$UserInput = Read-Host -Prompt "Press Y to continue or any other key to exit"
+
+if ($UserInput -ne 'Y') {
+    Write-Host "Exiting..."
+    exit 1
+}
+
+Write-Host "==== Kicker Script Continuing ===="
+
 
 # ------------------------------------------------
 # (2) Check & Install Git for Windows
