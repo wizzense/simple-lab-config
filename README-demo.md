@@ -22,18 +22,26 @@ The first time you run this it will download and install Git and Github CLI for 
 
 I recommend you customize config.json.
 
-To get opentofu setup, really you only need to run: 0005,0007,0008,0009,0010
+To get opentofu setup, really you only need to specify these when prompted: 0006,0007,0008,0009,0010
 
-0000 - 0000_Enable-WinRM.ps1
-0001 - 0001_Enable-RemoteDesktop.ps1
-0002 - 0002_Configure-Firewall.ps1
-0003 - 0003_Change-ComputerName.ps1
-0005 - 0005_Install-HyperV.ps1
-0006 - 0006_Install-WAC.ps1
-0007 - 0007_Install-Go.ps1
-0008 - 0008_Install-OpenTofu.ps1
-0009 - 0009_Initialize-OpenTofu.ps1
-0010 - 0010_Prepare-HyperVHost.ps1
+-a----          3/7/2025   7:12 AM            873 0000_Cleanup-Files.ps1
+-a----          3/7/2025   7:08 AM           1024 0001_Reset-Git.ps1
+-a----          3/7/2025   8:09 AM           2388 0006_Install-ValidationTools.ps1
+-a----          3/7/2025   6:47 AM           1673 0007_Install-Go.ps1
+-a----          3/7/2025   8:09 AM            279 0008_Install-OpenTofu.ps1
+-a----          3/7/2025   8:06 AM           6503 0009_Initialize-OpenTofu.ps1
+-a----          3/7/2025   8:06 AM          12857 0010_Prepare-HyperVHost.ps1
+-a----          3/7/2025   7:08 AM            616 0100_Enable-WinRM.ps1
+-a----          3/7/2025   7:08 AM            725 0101_Enable-RemoteDesktop.ps1
+-a----          3/7/2025   7:08 AM            613 0102_Configure-Firewall.ps1
+-a----          3/7/2025   7:08 AM           1203 0103_Change-ComputerName.ps1
+-a----          3/7/2025   7:08 AM           1895 0104_Install-CA.ps1
+-a----          3/7/2025   7:08 AM           1141 0105_Install-HyperV.ps1
+-a----          3/7/2025   7:08 AM           2568 0106_Install-WAC.ps1
+-a----          3/7/2025   7:08 AM            272 0111_Disable-TCPIP6.ps1
+-a----          3/7/2025   7:08 AM            705 0112_Enable-PXE.ps1
+-a----          3/7/2025   7:08 AM            351 0113_Config-DNS.ps1
+-a----          3/7/2025   7:08 AM            259 0114_Config-TrustedHosts.ps1
 
 To run ALL scripts, type 'all'.
 To run one or more specific scripts, provide comma separated 4-digit prefixes (e.g. 0001,0003).
