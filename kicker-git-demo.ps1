@@ -183,8 +183,9 @@ if (!(Test-Path $repoPath)) {
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
 
-    & "$ghExePath" repo clone $config.RepoUrl $repoPath/dev 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
-
+    #& "$ghExePath" repo clone $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\gh_clone_log.txt"
+    & "$gitPath" clone -b dev --single-branch $config.RepoUrl $repoPath 2>&1 | Tee-Object -FilePath "$env:TEMP\git_clone_log.txt"
+    
     $ErrorActionPreference = $prevEAP
 
     # Fallback to git if the GitHub CLI clone appears to have failed
