@@ -14,7 +14,7 @@
   5) Invokes runner.ps1 from this repo. Runner can be ran with optional parameters to automatically run, but it will prompt you to manually select which scripts to run by default.
 
 ```
-powershell.exe -NoProfile -ExecutionPolicy Byp ass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/kicker-git-demo.ps1' -OutFile '.\kicker-git-demo.ps1'; .\kicker-git-demo.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Byp ass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/wizzense/opentofu-lab-automation/refs/heads/dev/kicker-git-dev.ps1' -OutFile '.\kicker-git-demo.ps1'; .\kicker-git-demo.ps1"
 ```
 It will prompt print the current config and prompt you to customize it interactively. 
 

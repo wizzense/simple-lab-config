@@ -64,7 +64,7 @@ if (-not $AutoAccept) {
 }
 
 Write-Host "==== Locating scripts ===="
-$ScriptFiles = Get-ChildItem -Path . -Filter "????_*.ps1" -File | Sort-Object -Property Name
+$ScriptFiles = Get-ChildItem -Path .\runner_scripts -Filter "????_*.ps1" -File | Sort-Object -Property Name
 
 if (!$ScriptFiles) {
     Write-Host "ERROR: No scripts found matching ????_*.ps1 in current directory."
